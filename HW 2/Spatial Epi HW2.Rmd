@@ -1,0 +1,30 @@
+---
+title: "Spatial Epi HW 2"
+author: "David Coomes"
+date: "2/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r install_packages}
+
+
+
+```
+
+
+```{r load_data}
+
+link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/ohio_2019_version.txt"
+ohio_canc <- read.table(url(link))
+
+#data
+#Obs= observed deaths
+#Exp = expected deaths
+
+```
+
