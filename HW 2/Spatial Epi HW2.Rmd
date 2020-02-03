@@ -5,6 +5,7 @@ date: "2/5/2020"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
@@ -12,7 +13,19 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r install_packages}
 
-
+rm(list=ls())
+library(haven)
+#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
 
 ```
 
@@ -20,11 +33,64 @@ knitr::opts_chunk$set(echo = FALSE)
 ```{r load_data}
 
 link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/ohio_2019_version.txt"
-ohio_canc <- read.table(url(link))
+ohio_canc <- read.table(url(link), header=TRUE)
 
 #data
 #Obs= observed deaths
 #Exp = expected deaths
 
 ```
+
+
+```{r map}
+
+zip_ohmap_SHP = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/Ohio%20shape%20files.zip"
+
+```
+
+
+```{r, eval=TRUE}
+
+library(utils)
+temp=tempfile()
+download.file(zip_ohmap_SHP, temp)
+unzip(temp)
+
+```
+
+
+```{r}
+
+#DMC - showing which tempfiles are in the directory
+
+(maps=list.files(pattern = 'shp'))
+
+```
+
+
+```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+# notice the parameters use in the chunk!!
+
+#ohMap <- readOGR("ohio_map.shp",stringsAsFactors=F) 
+
+ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
+
+
+```
+
+
+```{r smr}
+
+#creating SMRs
+ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
+
+```
+
+
+```{r merging_data}
+
+
+
+```
+
 
