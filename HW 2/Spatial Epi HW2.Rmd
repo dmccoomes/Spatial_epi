@@ -26,6 +26,9 @@ library(RColorBrewer)
 library(ggplot2)
 library(maps)
 library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
 
 ```
 
@@ -44,7 +47,7 @@ ohio_canc <- read.table(url(link), header=TRUE)
 
 ```{r map}
 
-zip_ohmap_SHP = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/Ohio%20shape%20files.zip"
+zip_ohmap_SHP = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/Ohio%20shape%20files%20(2).zip"
 
 ```
 
@@ -75,6 +78,8 @@ unzip(temp)
 
 ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
 
+ohio_map <- readOGR(dsn="C:/Users/dcoomes/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
+
 
 ```
 
@@ -89,7 +94,8 @@ ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
 
 ```{r merging_data}
 
-
+ohio_map$fips <- as.numeric(as.character(ohio_map$CNTYIDFP00))
+ohio_map <- merge(ohio_map,ohio_canc,by="fips")
 
 ```
 
