@@ -7,11 +7,11 @@ output: html_document
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 ```
 
 
-```{r install_packages}
+```{r install_packages, include=FALSE}
 
 rm(list=ls())
 library(haven)
@@ -76,9 +76,11 @@ unzip(temp)
 
 #ohMap <- readOGR("ohio_map.shp",stringsAsFactors=F) 
 
+#On pc
 ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
 
-ohio_map <- readOGR(dsn="C:/Users/dcoomes/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
+#on laptop
+#ohio_map <- readOGR(dsn="C:/Users/dcoomes/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
 
 
 ```
@@ -100,3 +102,101 @@ ohio_map <- merge(ohio_map,ohio_canc,by="fips")
 ```
 
 
+```{r ggplot_map_obs}
+
+#set breakpoints for plotting
+num_bins <- 8
+quants <- round(quantile(ohio_map@data$Obs, seq(0,1,length.out=num_bins)),2)
+ohio_map@data$obs_cut <- cut(ohio_map@data$Obs, breaks=c(quants, Inf), include.lowest=TRUE, right=FALSE)
+
+ohio_df <- tidy(ohio_map)
+
+ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
+ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+observed_ct_map <- ggplot() +
+  geom_polygon(
+    data=ohio_df,
+    aes(x=long, y=lat, group=group,
+        fill = obs_cut)) + 
+  scale_fill_brewer("Observed deaths", palette="RdBu", direction=-1) +
+  theme(line=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank()) + 
+  coord_equal()
+
+#save the map
+ggsave("ohio_map_obs_ggplot.pdf", width=8, height=8)
+
+plot(observed_ct_map,
+     border='blue',
+     lwd=1)
+
+```
+
+
+
+```{r ggplot_map_exp}
+
+#set breakpoints for plotting
+num_bins <- 8
+quants <- round(quantile(ohio_map@data$Exp, seq(0,1,length.out=num_bins)),2)
+ohio_map@data$exp_cut <- cut(ohio_map@data$Exp, breaks=c(quants, Inf), include.lowest=TRUE, right=FALSE)
+
+ohio_df <- tidy(ohio_map)
+
+ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
+ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+expected_ct_map <- ggplot() +
+  geom_polygon(
+    data=ohio_df,
+    aes(x=long, y=lat, group=group,
+        fill = exp_cut)) + 
+  scale_fill_brewer("Expected deaths", palette="RdBu", direction=-1) +
+  theme(line=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank()) + 
+  coord_equal()
+
+#save the map
+ggsave("ohio_map_exp_ggplot.pdf", width=8, height=8)
+
+plot(expected_ct_map,
+     border='blue',
+     lwd=1)
+
+```
+
+
+```{r ggplot_map_smr}
+
+#set breakpoints for plotting
+num_bins <- 8
+quants <- round(quantile(ohio_map@data$smr, seq(0,1,length.out=num_bins)),2)
+ohio_map@data$smr_cut <- cut(ohio_map@data$smr, breaks=c(quants, Inf), include.lowest=TRUE, right=FALSE)
+
+ohio_df <- tidy(ohio_map)
+
+ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
+ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+smr_ct_map <- ggplot() +
+  geom_polygon(
+    data=ohio_df,
+    aes(x=long, y=lat, group=group,
+        fill = smr_cut)) + 
+  scale_fill_brewer("SMR", palette="RdBu", direction=-1) +
+  theme(line=element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank()) + 
+  coord_equal()
+
+#save the map
+ggsave("ohio_map_smr_ggplot.pdf", width=8, height=8)
+
+plot(smr_ct_map,
+     border='blue',
+     lwd=1)
+
+```
