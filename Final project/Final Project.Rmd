@@ -14,7 +14,9 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 ```{r install_packages, include=FALSE}
 
 rm(list=ls())
+library(foreign)
 library(haven)
+#Having trouble installing INLA on pc in office
 install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
 library(rgdal)
@@ -29,5 +31,54 @@ library(broom)
 library(raster)
 library(leaflet)
 library(dplyr)
+library(tidyverse)
 
 ```
+
+Starting with Ethiopia Wave 3
+
+```{r load_EPAR_data}
+
+#loading health data
+link_3 = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Raw%20data/ESS%20Wave%203/Ethiopia%20Wave%203%20data/ETH_2015_ESS_v02_M_STATA8/Household/sect3_hh_w3.dta"
+
+# et_w3_anth <- read_dta(url(link_3))
+# head(et_w3_anth)
+# summary(et_w3_anth)
+# View(et_w3_anth)
+  
+#downloading cover sheet data
+link_cover = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Raw%20data/ESS%20Wave%203/Ethiopia%20Wave%203%20data/ETH_2015_ESS_v02_M_STATA8/Household/sect_cover_hh_w3.dta"
+
+et_w3_cover <- read_dta(url(link_cover))
+# View(et_w3_cover)
+
+#downloading section 1
+link_1 = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Raw%20data/ESS%20Wave%203/Ethiopia%20Wave%203%20data/ETH_2015_ESS_v02_M_STATA8/Household/sect1_hh_w3.dta"
+et_w3_hh <- read_dta(url(link_1))
+
+#Merging household cover data with health data
+et_w3_health <- merge(et_w3_cover, et_w3_anth, no.dups=TRUE)
+# View(et_w3_health)
+
+et_w3_health <- merge(et_w3_hh, et_w3_health, no.dups=TRUE)
+summary(et_w3_health$hh_s1q04h)
+ 
+#renaming variables
+et_w3_health <- et_w3_health %>%
+  rename(
+    age = hh_s1q04h,
+    birth_day = hh_s1q04g_1,
+    birth_month = hh_s1q04g_2,
+    birth_year = hh_s1q04g_3
+  )
+
+colnames(et_w3_health)
+summary(et_w3_health$age)
+
+#Generating age using date of interview and year of birth
+#et_w3_health$year <- et_w3_health$ et_w3_health$hh_saq13_c
+
+```
+
+
