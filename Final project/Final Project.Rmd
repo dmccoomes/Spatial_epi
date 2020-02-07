@@ -1,0 +1,33 @@
+---
+title: "Spatial Epi - Final Project"
+author: "David Coomes"
+date: "January 27, 2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+
+```{r install_packages, include=FALSE}
+
+rm(list=ls())
+library(haven)
+install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+
+```
