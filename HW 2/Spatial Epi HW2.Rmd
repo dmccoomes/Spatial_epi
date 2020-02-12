@@ -2,7 +2,9 @@
 title: "Spatial Epi HW 2"
 author: "David Coomes"
 date: "2/5/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 
@@ -52,7 +54,7 @@ zip_ohmap_SHP = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%202/Ohio
 ```
 
 
-```{r, eval=TRUE}
+```{r, eval=TRUE, include=FALSE}
 
 library(utils)
 temp=tempfile()
@@ -62,7 +64,7 @@ unzip(temp)
 ```
 
 
-```{r}
+```{r include=FALSE}
 
 #DMC - showing which tempfiles are in the directory
 
@@ -72,9 +74,18 @@ unzip(temp)
 
 
 ```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+
 # notice the parameters use in the chunk!!
 
 #ohMap <- readOGR("ohio_map.shp",stringsAsFactors=F) 
+
+
+
+```
+
+```{r load_data2, results='hide'}
+
+#The above code doesn't seem to work - loading data manually.
 
 #On pc
 ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
@@ -85,8 +96,7 @@ ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_
 
 ```
 
-
-```{r smr}
+```{r smr, results='hide'}
 
 #creating SMRs
 ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
@@ -94,15 +104,18 @@ ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
 ```
 
 
-```{r merging_data}
+```{r merging_data, include=FALSE}
 
 ohio_map$fips <- as.numeric(as.character(ohio_map$CNTYIDFP00))
 ohio_map <- merge(ohio_map,ohio_canc,by="fips")
 
 ```
 
+###Question 1
 
-```{r ggplot_map_obs}
+**(a) Map of observed lung cancer mortality counts in Ohio (1988).**
+
+```{r ggplot_map_obs, include=FALSE}
 
 #set breakpoints for plotting
 num_bins <- 8
@@ -113,6 +126,12 @@ ohio_df <- tidy(ohio_map)
 
 ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
 ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+
+```
+
+
+```{r ggplot_map_obs2, echo=FALSE}
 
 observed_ct_map <- ggplot() +
   geom_polygon(
@@ -132,11 +151,16 @@ plot(observed_ct_map,
      border='blue',
      lwd=1)
 
+
 ```
 
 
+\newpage
 
-```{r ggplot_map_exp}
+
+**(b) Map of expected lung cancer mortality counts in Ohio (1988).** Expected counts are adjusted for gender, race, and age using internal standardization.  
+
+```{r ggplot_map_exp, echo=FALSE, include=FALSE}
 
 #set breakpoints for plotting
 num_bins <- 8
@@ -147,6 +171,12 @@ ohio_df <- tidy(ohio_map)
 
 ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
 ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+
+```
+
+
+```{r ggplot_map_exp2, echo=FALSE}
 
 expected_ct_map <- ggplot() +
   geom_polygon(
@@ -162,14 +192,17 @@ expected_ct_map <- ggplot() +
 #save the map
 ggsave("ohio_map_exp_ggplot.pdf", width=8, height=8)
 
-plot(expected_ct_map,
-     border='blue',
-     lwd=1)
+plot(expected_ct_map)
 
 ```
 
 
-```{r ggplot_map_smr}
+\newpage
+
+
+**(c) Map of standardized mortality ratios (SMR) in Ohio (1988).** 
+
+```{r ggplot_map_smr, include=FALSE}
 
 #set breakpoints for plotting
 num_bins <- 8
@@ -180,6 +213,12 @@ ohio_df <- tidy(ohio_map)
 
 ohio_map$polyID <- sapply(slot(ohio_map, "polygons"), function(x) slot(x, "ID"))
 ohio_df <- merge(ohio_df, ohio_map, by.x="id", by.y="polyID")
+
+
+```
+
+
+```{r ggplot_map_smr2, echo=FALSE}
 
 smr_ct_map <- ggplot() +
   geom_polygon(
@@ -199,4 +238,246 @@ plot(smr_ct_map,
      border='blue',
      lwd=1)
 
+
 ```
+
+The SMRs seems somewhat normally distributed, with a mean and median slightly below 1 (0.94 and 0.93 respectively). The minimum SMR is 0.36 and the maximum is 1.54.
+
+```{r smr_desc, include=FALSE}
+
+summary(ohio_map$smr)
+
+hist(ohio_map$smr, breaks=10)
+
+```
+
+
+\newpage
+
+###Question 2
+
+**(a) Map of posterior means of RR for lung cancer mortality in Ohio (1988).**
+
+```{r gamma_est, include=FALSE}
+
+ebresults <- eBayes(ohio_map$Obs, ohio_map$Exp)
+ebresults$alpha
+#alpha = 51.73209
+exp(ebresults$beta)
+#beta = 0.9749581
+
+mean(ohio_map$Obs/ohio_map$Exp)
+#mean is 0.9432857
+
+summary(ebresults$RR)
+
+hist(ebresults$RR, breaks=10)
+
+```
+
+```{r gamma_est_map}
+
+par(mar = c(1,1,1,1))
+mapvariable(ebresults$RR, ohio_map)
+
+```
+
+
+The distribution of the posterior means is similar to that of the non-smoothed SMR estimates in that they are generally normally distributed, and the SMRs correspond to the posterior means (those counties with high SMR tend to have high posterior RR and the same with low SMR). However, the distribution of the posterior RR estimates is substantially smaller than that of the SMRs. The minimum RR is 0.798 as compared to 0.36 for the SMR, and the maximum RR is 1.194 as compared to 1.54 for the SMR estimates. This shift of estimates towards the mean is what we would expect in our spatially smoothed model. 
+
+
+
+```{r assess_gamma_funct, include=FALSE}
+
+
+```
+
+
+\newpage
+
+**(b) Gamma posterior densities of the relative risks for the first four counties in Ohio.** 
+
+```{r gamma_dist}
+
+par(mfrow = c(2,2))
+EBpostdens(ohio_map$Obs[1], ohio_map$Exp[1], ebresults$alpha, ebresults$beta, 
+           lower = 0, upper = 3, main = "County 1")
+EBpostdens(ohio_map$Obs[2], ohio_map$Exp[2], ebresults$alpha, ebresults$beta, 
+           lower = 0, upper = 3, main = "County 2")
+EBpostdens(ohio_map$Obs[3], ohio_map$Exp[3], ebresults$alpha, ebresults$beta, 
+           lower = 0, upper = 3, main = "County 3")
+EBpostdens(ohio_map$Obs[4], ohio_map$Exp[4], ebresults$alpha, ebresults$beta, 
+           lower = 0, upper = 3, main = "County 4")
+
+```
+
+
+```{r gamma_model_assessment, include=FALSE}
+
+egamma <- qgamma(seq(0.5, length(ohio_map$Obs), 1)/length(ohio_map$Obs), 
+                 ebresults$alpha, ebresults$alpha)
+par(mfrow = c(1,2))
+
+#first plot SMR estimates
+plot(egamma, exp(-ebresults$beta) * sort(ohio_map$smr), xlim = c(0.4, 1.6), ylim = c(0.4, 1.6), xlab = "Exp Order Stat", ylab = "Obs Order Stat")
+abline(0,1)
+     
+#second plot is estimates from gamma model
+plot(egamma, exp(-ebresults$beta) * sort(ebresults$RR),
+     xlim = c(0.4, 1.6), ylim = c(0.4, 1.6), xlab="Exp Order Stat", 
+     ylab = "Obs Order Stat (Gamma)")
+abline(0,1)
+
+
+```
+
+\newpage
+
+**Plot of empirical Bayes estiamtes and SMRs.**
+
+```{r gamma_smoothing}
+
+#par(mfrow = c(2,1))
+plot(ohio_map$smr, ebresults$RR, xlab="SMR", ylab="EB estimates",
+     xlim = c(0.3, 1.7), ylim = c(0.3, 1.7),
+     pch = 1, col="purple")
+abline(0,1)
+
+plot(log(ohio_map$smr), log(ebresults$RR), 
+         xlim= c(-1.5, 1.5), ylim = c(-1, 1), 
+         xlab="log(SMR)", ylab="log(EB estimate)",
+         pch = 1, col="purple")
+abline(0,1)
+
+```
+
+We can see that the plot of the empirical Bayes estiamtes against the SMRs are tilted slightly from the abline that has a slope of 1 on both the normal and the log scale. This is to be expected as our smoothing model tends to push those values that are higher or lower than the average towards the average, especially if they have a relatively low sample size. Because of this, counties with a low estiamted SMR will have a higher EB estimate, and those with a high estimated SMR will have a lower EB estimate.  
+
+
+\newpage
+
+
+**(c) Posterior probabilities that an RR exceeds 1.2 in each county.**
+
+```{r post_prob}
+
+par(mfrow = c(1,1), mar=c(1,1,1,1))
+thresh_1.2 <- EBpostthresh(ohio_map$Obs, ohio_map$Exp, alpha = ebresults$alpha,
+                           beta = ebresults$beta, rrthresh=1.2)
+mapvariable(thresh_1.2, ohio_map)
+
+```
+
+There are no countis where the probability of exceeding a RR of 1.2 is over 50%. There is one county that is close to 50% probability (right in the middle of the state), and several more counties that have around a 25-35% of exceeding a RR of 1.2. 
+
+
+\newpage
+
+###Question 3
+
+**(a) The posterior mean for $\beta_0$ is -0.033 and for $\sigma_e$ it is 0.139.**
+
+
+```{r inla_setup, include=FALSE}
+
+lnprior <- LogNormalPriorCh(1,5,0.5,0.95)
+lnprior
+
+plot(seq(0,7,0.1), dlnorm(seq(0,7,0.1),
+            meanlog=lnprior$mu, sdlog=lnprior$sigma),
+            type="l", xlab=expression(theta),
+            ylab="LogNormal Density")
+  
+
+```
+
+
+
+```{r inla_plot, include=FALSE}
+
+spplot(ohio_map, c("smr"), at = c(0,0.2,0.4,0.6, 0.8, 1, 1.2, 1.4, 1.6), col.regions = rev(brewer.pal(8, "RdBu")))
+
+```
+
+
+```{r inla_lognormal, include=FALSE}
+
+ohio_map2 <- as.data.frame(ohio_map)
+
+pcprec <- list(theta = list(prior = "pc.prec",
+          param = c(1, 0.05)))
+ohio.fit1 <- inla(Obs ~ 1 + f(fips,
+          model = "iid", hyper= pcprec), data = ohio_map2,
+          family="poisson", E = Exp, control.predictor = list(compute=TRUE))
+
+summary(ohio.fit1)
+
+names(ohio.fit1)
+
+expbetaOmed <- ohio.fit1$summary.fixed[4]
+sdmed <- 1/sqrt(ohio.fit1$summary.hyperpar[4])
+
+expbetaOmed
+sdmed
+
+```
+
+<br>
+<br>
+<br>
+
+**(b) RR of lung cancer mortality in Ohio using Poisson Lognormal smoothing **
+
+
+```{r RR_map, include=FALSE}
+
+#summary(ohio.fit1)
+
+ohio.fit1$summary.fixed
+
+lnorminter <- ohio.fit1$summary.fixed[4]
+lnormREs <- exp(ohio.fit1$summary.random$fips[5])
+
+lnormRRs <- as.double(exp(lnorminter)) * lnormREs[,1]
+
+
+```
+
+
+```{r RR_map2}
+
+ohio_map$RRlnorm <- lnormRRs
+spplot(ohio_map, c("RRlnorm"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
+
+```
+
+\newpage
+
+```{r model_comparison}
+
+par(mfrow = c(1,1))
+
+plot(ohio_map$RRlnorm, ohio_map$smr, xlab="SMR", ylab="Lognormal estimates",
+     xlim = c(0,2), ylim = c(0,2),
+     pch=1, col="purple")
+abline(0,1)
+
+plot(ohio_map$RRlnorm, ebresults$RR, xlab="SMR", ylab="EB estimates",
+     xlim = c(0.3, 1.7), ylim = c(0.3, 1.7),
+     pch = 1, col="purple")
+abline(0,1)
+
+
+
+```
+
+The RRs from my Lognormal model do not align well with either the RRs from the Gaussian model or the estimated SMRs. This makes me think that my Lognormal model was not fit correctly - I wouldn't expect it to be this far off.
+
+\newpage
+
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
+
