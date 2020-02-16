@@ -20,7 +20,9 @@ library(INLA)
 library(rgdal)
 library(maptools)
 library(sp)
-library(spdep)
+#library(spdep)
+install.packages("SpatialEpi", dep=TRUE)
+install.packages("deldir", dep=TRUE)
 library(SpatialEpi)
 library(RColorBrewer)
 library(ggplot2)
@@ -76,9 +78,11 @@ unzip(temp)
 
 #ohMap <- readOGR("ohio_map.shp",stringsAsFactors=F) 
 
+#From pc
 ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
 
-ohio_map <- readOGR(dsn="C:/Users/dcoomes/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
+#From laptop
+ohio_map <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
 
 
 ```
@@ -99,4 +103,50 @@ ohio_map <- merge(ohio_map,ohio_canc,by="fips")
 
 ```
 
+
+```{r}
+
+#for laptop
+setwd("/Users/david/Documents/GitHub/Spatial_epi/HW 2")
+pdf("ohio_map_spplot_default.pdf", # name of file you want to save
+    width = 8, # width of plot
+    height = 8) # height of plot
+
+spplot(ohio_map, c("Obs"))
+
+#Not sure what this is doing - it doesn't seem to do much 
+dev.off()
+
+num_bins <- 8
+
+# choose a color palette
+plotting_color_palette <- rev(brewer.pal(8, "RdBu"))
+
+# set breakpoints for plotting
+quants <- round(quantile(ohio_map@data$Obs, seq(0, 1, length.out = num_bins)),2)
+ohio_map@data$obs_cut <- cut(ohio_map@data$Obs, breaks = c(quants, Inf), include.lowest = TRUE, right = FALSE)   # I modified the breaks
+
+# start graphical device
+pdf("ohio_map_spplot_pretty.pdf", width = 8, height = 8)
+
+# make the pretty plot
+spplot(ohio_map["obs_cut"],
+       colorkey = list(height = 1, 
+                       labels = list(at = seq(0.5, length(quants) -0.5), 
+                                     labels = quants)),
+       col.regions = colorRampPalette(plotting_color_palette)(length(quants)))
+
+# close graphical device
+dev.off()
+
+
+```
+
+
+```{r}
+
+ohio_df <- tidy(ohio_map)
+
+
+```
 
