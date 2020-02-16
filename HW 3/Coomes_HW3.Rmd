@@ -1,0 +1,11 @@
+---
+title: "Spatial Epi HW 3"
+author: "David"
+date: "2/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
