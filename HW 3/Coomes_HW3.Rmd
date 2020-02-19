@@ -9,3 +9,98 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r install_packages, include=FALSE}
+
+if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
+  install.packages("INLA", repos = c(getOption("repos"), 
+          INLA = "https://inla.r-inla-download.org/R/stable"),
+          dep=TRUE)
+}
+
+
+if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
+if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if (!require(haven)) install.packages("haven")
+if (!require(rgdal)) install.packages("rgdal")
+if (!require(maptools)) install.packages("maptools")
+if (!require(sp)) install.packages("sp")
+if (!require(spdep)) install.packages("spdep")
+if (!require(SpatialEpi)) install.packages("SpatialEpi")
+if (!require(RColorBrewer)) install.packages("RColorBrewer")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(maps)) install.packages("maps")
+if (!require(broom)) install.packages("broom")
+if (!require(raster)) install.packages("raster")
+if (!require(leaflet)) install.packages("leaflet")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyverse)) install.packages("tidyverse")
+
+
+
+#Can add more here if needed
+
+```
+
+
+```{r load_packages, include=FALSE}
+
+rm(list=ls())
+library(foreign)
+library(haven)
+#Having trouble installing INLA on pc in office
+#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(tidyverse)
+library(SUMMER)
+
+```
+
+
+```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+#Cancer data
+link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_data_ascending_fips.txt"
+ohio_canc <- read.table(url(link), header=TRUE)
+
+#Map data
+zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/Map%20data.zip"
+
+library(utils)
+temp=tempfile()
+download.file(zip_oh_map, temp)
+unzip(temp)
+
+(maps=list.files(pattern = 'shp'))
+
+ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F) 
+
+
+
+```
+
+
+
+```{r inla_fit}
+
+pcprec <- list(theta = list(prior = "pc.prec",
+                param = c(1, 0.05)))
+
+ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="ohio map.graph", scale.model=T, constr=T,
+                  hyper=list(phi=list(prior="pc", param=c(0.5, 0.5), initial=1),
+                  prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))))
+
+
+```
+
