@@ -75,18 +75,35 @@ link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_dat
 ohio_canc <- read.table(url(link), header=TRUE)
 
 #Map data
-zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/Map%20data.zip"
+zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20data.zip"
 
-library(utils)
+#library(utils)
 temp=tempfile()
 download.file(zip_oh_map, temp)
 unzip(temp)
 
 (maps=list.files(pattern = 'shp'))
 
-ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F) 
+#ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F) 
+
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Data\\Map data", layer="ohio_map")
+
+#ordering of regions is not the same among the data sets - how do we align these two?
+summary(ohmap)
+ohmap$COUNTYFP00
+
+summary(ohio_canc)
+ohio_canc$fips
+View(ohio_canc)
 
 
+```
+
+
+```{r inla_graph_file}
+
+nb.map <- poly2nb(ohmap)
+nb2INLA("oh_graph", nb.map)
 
 ```
 
@@ -94,11 +111,16 @@ ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F)
 
 ```{r inla_fit}
 
-pcprec <- list(theta = list(prior = "pc.prec",
+pc.prec <- list(theta = list(prior = "pc.prec",
                 param = c(1, 0.05)))
 
-ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="ohio map.graph", scale.model=T, constr=T,
-                  hyper=list(phi=list(prior="pc", param=c(0.5, 0.5), initial=1),
+formula <- deaths ~ 1 + I(X) + 
+       f(fips, model="bym2", graph="oh_graph", scale.model=T, constr=T, hyper=list(phi=list(prior="pc",                        param=c(0.5, 0.5), initial=1), prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))) 
+
+ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson", E=county_level_E, control.predictor=list(compute=TRUE))
+
+
+ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="oh_graph", scale.model=T, constr=T,                                         hyper=list(phi=list(prior="pc.prec", param=c(0.5, 0.5), initial=1),
                   prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))))
 
 
