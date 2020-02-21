@@ -36,9 +36,6 @@ if (!require(dplyr)) install.packages("dplyr")
 if (!require(tidyverse)) install.packages("tidyverse")
 
 
-
-#Can add more here if needed
-
 ```
 
 
@@ -47,8 +44,6 @@ if (!require(tidyverse)) install.packages("tidyverse")
 rm(list=ls())
 library(foreign)
 library(haven)
-#Having trouble installing INLA on pc in office
-#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
 library(rgdal)
 library(maptools)
@@ -86,15 +81,18 @@ unzip(temp)
 
 #ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F) 
 
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Data\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Data\\Map data", #layer="ohio_map")
+
+#When using PC in office
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Desktop\\Epi PhD\\Classes\\Spatial epi\\Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 summary(ohmap)
-ohmap$COUNTYFP00
+ohmap$CNTYIDFP00
 
-summary(ohio_canc)
-ohio_canc$fips
-View(ohio_canc)
+#summary(ohio_canc)
+#ohio_canc$fips
+#View(ohio_canc)
 
 
 ```
@@ -111,17 +109,31 @@ nb2INLA("oh_graph", nb.map)
 
 ```{r inla_fit}
 
-pc.prec <- list(theta = list(prior = "pc.prec",
-                param = c(1, 0.05)))
+ohio_canc2 <- as.data.frame(ohio_canc)
 
-formula <- deaths ~ 1 + I(X) + 
-       f(fips, model="bym2", graph="oh_graph", scale.model=T, constr=T, hyper=list(phi=list(prior="pc",                        param=c(0.5, 0.5), initial=1), prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))) 
+#need to merge map and cancer data together
+ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
+ohmap <- ohmap[order(ohmap$fips),]
+ohmap <- merge(ohmap,ohio_canc,by="fips")
 
-ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson", E=county_level_E, control.predictor=list(compute=TRUE))
+nb.map <- poly2nb(ohmap)
+nb2INLA("oh_graph", nb.map)
 
 
-ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="oh_graph", scale.model=T, constr=T,                                         hyper=list(phi=list(prior="pc.prec", param=c(0.5, 0.5), initial=1),
-                  prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))))
+#pc.prec <- list(theta = list(prior = "pc.prec",
+                #param = c(1, 0.05)))
+
+formula <- deaths ~ 1 + 
+       f(fips, model="bym2", graph="oh_graph", scale.model=T, constr=T, 
+         hyper=list(phi=list(prior="pc", param=c(0.5, 0.5), initial=1), prec=list(prior="pc.prec",
+         param=c(0.3,0.01), initial=5))) 
+
+ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson", E=county_level_E,
+                  control.predictor=list(compute=TRUE))
+
+
+ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="oh_graph", scale.model=T, constr=T,                       hyper=list(phi=list(prior="pc.prec", param=c(0.5, 0.5), initial=1),
+                 prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))))
 
 
 ```
