@@ -2,7 +2,9 @@
 title: "Spatial Epi HW 3"
 author: "David"
 date: "2/16/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -70,9 +72,14 @@ library(SUMMER)
 #ohio_canc <- read.table(url(link), header=TRUE)
 
 #Cancer data
+#on pc at home
+#ohio_canc <- read.table("/Users/david/Documents/GitHub/Spatial_epi/HW 3/Data/ohio_2019_version.txt", header=TRUE)
+#on laptop
 #ohio_canc <- read.table("/Users/david/Documents/GitHub/Spatial_epi/HW 3/Data/ohio_2019_version.txt", header=TRUE)
 
-ohio_canc <- read.table("/Users/david/Documents/GitHub/Spatial_epi/HW 3/Data/ohio_2019_version.txt", header=TRUE)
+#using github
+link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_2019_version.txt"
+ohio_canc <- read.table(url(link), header=TRUE)
 
 #Map data
 zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20data.zip"
@@ -86,8 +93,14 @@ zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20
 
 #ohmap <- readOGR(url(zip_oh_map),stringsAsFactors=F) 
 
-<<<<<<< HEAD
-ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+#maplink <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20data/"
+#ohmap <- readOGR(dsn = maplink, layer="ohio_map")
+
+#pc in office
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+
+#laptop
+#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -104,11 +117,10 @@ ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", 
 
 #creating smr
 ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
-=======
 #ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Data\\Map data", #layer="ohio_map")
 
 #When using PC in office
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Desktop\\Epi PhD\\Classes\\Spatial epi\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Desktop\\Epi PhD\\Classes\\Spatial epi\\Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 summary(ohmap)
@@ -117,7 +129,6 @@ ohmap$CNTYIDFP00
 #summary(ohio_canc)
 #ohio_canc$fips
 #View(ohio_canc)
->>>>>>> 4402fb3df09394cc2413790be47ff806b39e2b28
 
 #creating RR
 ohio_canc$Z <- log(ohio_canc$smr)
@@ -281,9 +292,8 @@ abline(0,1)
 ```
 
 
+###Question 2
 
-
-<<<<<<< HEAD
 
 ```{r load_kc_data, include=FALSE}
 
@@ -321,14 +331,14 @@ head(direct, n=2)
 
 ```{r generic_fit, include=FALSE}
 
-#smoothed, non-weighted estimates
+#smoothed, non-weighted estimates and non-smoothed, non-weighted estimates
 smoothed <- fitGeneric(data=brfss, geo=KingCounty,
       Amat=mat, responseType = "binary", responseVar="smoker1",
       strataVar=NULL, weightVar=NULL, regionVar="hracode",
       clusterVar=NULL, CI=0.95)
 head(smoothed$HT, n=2)
 
-#
+#The smooth estimates are the smoothed non-weighted estimates and the HT estimates are the non-smoothed, non-weighted estimates
 head(smoothed$smooth, n=1)
 #simple smoothed binomial probabilities
 head(smoothed$HT, n=1)
@@ -338,10 +348,30 @@ head(smoothed$HT, n=1)
 ```
 
 
-```{r map_smooth_nw}
-=======
-ohio_canc2 <- as.data.frame(ohio_canc)
+```{r map_smooth}
 
+install.packages('rgeos', type='source')
+install.packages('rgdal', type='source')
+
+library(rgeos)
+
+#mapping smoothed, non-weighted estimates
+toplot <- smoothed$smooth
+mapPlot(data = toplot, geo=KingCounty,
+        variables=c("mean.original"), 
+        labels=c("Posterior Mean"), by.data="region",
+        by.geo="HRA2010v2_")
+
+```
+
+
+
+
+
+```{r map_smooth_nw}
+
+
+ohio_canc2 <- as.data.frame(ohio_canc)
 #need to merge map and cancer data together
 ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
 ohmap <- ohmap[order(ohmap$fips),]
@@ -365,7 +395,6 @@ ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson", E=county_level_E,
 
 ohio.fit1 <- inla(Counts ~ 1 + f(Region, model="bym2", graph="oh_graph", scale.model=T, constr=T,                       hyper=list(phi=list(prior="pc.prec", param=c(0.5, 0.5), initial=1),
                  prec=list(prior="pc.prec", param=c(0.3,0.01), initial=5))))
->>>>>>> 4402fb3df09394cc2413790be47ff806b39e2b28
 
 #mapping smoothed, non-weighted estimates
 toplot <- smoothed$smooth
