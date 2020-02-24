@@ -23,6 +23,7 @@ if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
 if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
 if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
 if (!require(haven)) install.packages("haven")
+if (!require(rgeos)) install.packages("rgeos")
 if (!require(rgdal)) install.packages("rgdal")
 if (!require(maptools)) install.packages("maptools")
 if (!require(sp)) install.packages("sp")
@@ -61,6 +62,7 @@ library(leaflet)
 library(dplyr)
 library(tidyverse)
 library(SUMMER)
+library(rgeos)
 
 ```
 
@@ -97,10 +99,10 @@ zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20
 #ohmap <- readOGR(dsn = maplink, layer="ohio_map")
 
 #pc in office
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
-#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -188,7 +190,6 @@ ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson",
                   E=Exp, 
                   control.predictor=list(compute=TRUE))
 
-
 #ohio.fit1 <- inla(formula, data=ohio_canc, 
  #              family="gaussian",
   #             control.predictor=list(compute=TRUE),
@@ -197,10 +198,16 @@ ohio.fit1 <- inla(formula, data=ohio_canc, family="poisson",
 
 #get estimates
 summary(ohio.fit1)
-post.med.1 <- ohio.fit1$summary.fixed[4]                       #posterior med
-sdmed.1 <- 1/sqrt(ohio.fit1$summary.hyperpar$`0.5quant`[1])     #posterior sd
-beta_low <- post.med.1 - 1.96*sdmed.1
-beta_high <- post.med.1 + 1.96*sdmed.1
+post.med.1 <- ohio.fit1$summary.fixed[4]              #posterior med
+post.med.1_low <- ohio.fit$summary.fixed[3]           #posterior med low   
+post.med.1_high <- ohio.fit$summary.fixed[5]          #posterior med high
+
+
+var.random.1 <- 1/sqrt(ohio.fit1$summary.hyperpar$`0.5quant`[1])     #total variance of random effects
+
+prop.1 <- ohio.fit1$summary.hyperpar$`0.5quant`[2]         #proportion of total variance due to random effects
+
+
 
 re.var <- 1/ohio.fit1$summary.hyperpar$`0.5quant`[1]      #variance of the random effects
 prop.spa <- ohio.fit1$summary.hyperpar$`0.5quant`[2]      #proportion of random effects due to spatial
@@ -214,6 +221,7 @@ prop.spa <- ohio.fit1$summary.hyperpar$`0.5quant`[2]      #proportion of random 
 
 ```{r map_setup_ICAR_1}
 
+#What is this doing here? 
 diff <- ohio.fit1$summary.random$Region[1:88, 2] - 
          ohio.fit1$summary.random$Region[89:176, 2]
 
@@ -350,10 +358,8 @@ head(smoothed$HT, n=1)
 
 ```{r map_smooth}
 
-install.packages('rgeos', type='source')
-install.packages('rgdal', type='source')
-
-library(rgeos)
+if (!require(gpclib)) install.packages("gpclib", type="source")
+gpclibPermit()
 
 #mapping smoothed, non-weighted estimates
 toplot <- smoothed$smooth
@@ -363,6 +369,26 @@ mapPlot(data = toplot, geo=KingCounty,
         by.geo="HRA2010v2_")
 
 ```
+
+
+```{r map_weight_smooth}
+
+svysmoothed <- fitGeneric(data=brfss, geo=KingCounty,
+       Amat = mat, responseType="binary", responseVar="diab2",
+       strataVar="strata", weightVar="rwt_llcp", regionVar="hracode",
+       clusterVar="~1", CI=0.95)
+
+
+est <- data.frame(naive=smoothed$HT$HT.est.original,
+    weighted=svysmoothed$HT$HT.est.original, smooth=smoothed$smooth$mean.original,
+    weightedsmooth=svysmoothed$smooth$mean.original)
+
+var <- data.frame(naive=smoothed$HT$HT.variance.original,
+    weighted=svysmoothed$HT$HT.variance.original,
+    smooth=smoothed$smooth$variance.original, weightedsmooth=svysmoothed$smooth)
+
+```
+
 
 
 
