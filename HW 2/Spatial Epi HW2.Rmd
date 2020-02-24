@@ -89,6 +89,12 @@ unzip(temp)
 
 #On pc
 #ohio_map <- readOGR(dsn="/Users/david/Desktop/Dave/school/Spatial Epi/HW 2/HW 2_data", layer = "ohio_map")
+<<<<<<< HEAD
+=======
+
+#on pc in office
+ohio_map <- readOGR(dsn="\\My Documents\\GitHub\\Spatial_epi\\HW 2\\Ohio shape files", layer="ohio_map")
+>>>>>>> 4402fb3df09394cc2413790be47ff806b39e2b28
 
 #on laptop
 ohio_map <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 2/Ohio shape files", layer="ohio_map")
