@@ -67,9 +67,11 @@ et_w3_anth <- read_dta(url(link_3))
 # summary(et_w3_anth)
 # View(et_w3_anth)
 
+#keeping only those we need
 keep_vars <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01", "saq02", "saq03", "saq04", "saq05", "saq06", "saq07", "hh_s3q12_a", "hh_s3q20a", "hh_s3q20d", "hh_s3q20e", "hh_s3q21_a", "hh_s3q21_b", "hh_s3q21_c", "hh_s3q22", "hh_s3q23")    
 et_w3_anth <- et_w3_anth[keep_vars]
 
+#renaming variables
 et_w3_anth <- et_w3_anth %>%
   rename(
     u_5 = hh_s3q12_a,
