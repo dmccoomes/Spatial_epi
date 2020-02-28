@@ -136,12 +136,22 @@ summary(et_w3_data$age)
 ```
 
 
-```{r read_in_map}
 
+Reading the shape file into R
+```{r map, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
 
-
-
+library(rgdal)
+#on laptop
+et_admin2_Map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP",stringsAsFactors=F) 
 
 ```
+
+
+```{r}
+
+plot(et_admin_Map)
+
+```
+
 
 
