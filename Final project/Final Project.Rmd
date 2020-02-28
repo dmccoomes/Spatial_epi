@@ -22,6 +22,7 @@ if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
 
 if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
 if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if (!require(zscorer)) install.packages("zscorer")
 
 
 
@@ -52,6 +53,7 @@ library(leaflet)
 library(dplyr)
 library(tidyverse)
 library(SUMMER)
+library(zscorer)
 
 ```
 
