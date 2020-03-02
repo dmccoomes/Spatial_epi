@@ -28,7 +28,6 @@ if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-proje
 
 rm(list=ls())
 library(haven)
-#install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 library(INLA)
 library(rgdal)
 library(maptools)
