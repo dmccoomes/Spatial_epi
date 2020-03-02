@@ -1,17 +1,8 @@
----
-title: "Spatial Epi HW 3"
-author: "David"
-date: "2/16/2020"
-output:
-  html_document: default
-  pdf_document: default
----
-
-```{r setup, include=FALSE}
+## ----setup, include=FALSE----------------------------------------------------------------------------------------------------------------------------------
 knitr::opts_chunk$set(echo = FALSE)
-```
 
-```{r install_packages, include=FALSE}
+
+## ----install_packages, include=FALSE-----------------------------------------------------------------------------------------------------------------------
 
 if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
   install.packages("INLA", repos = c(getOption("repos"), 
@@ -40,10 +31,9 @@ if (!require(tidyverse)) install.packages("tidyverse")
 if (!require(SUMMER)) install.packages("SUMMER")
 
 
-```
 
 
-```{r load_packages, include=FALSE}
+## ----load_packages, include=FALSE--------------------------------------------------------------------------------------------------------------------------
 
 rm(list=ls())
 library(foreign)
@@ -65,10 +55,9 @@ library(tidyverse)
 library(SUMMER)
 library(rgeos)
 
-```
 
 
-```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE, include=FALSE}
+## ---- eval=TRUE, results='hide', warning=FALSE, message=FALSE, include=FALSE-------------------------------------------------------------------------------
 
 #Cancer data
 #link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_data_ascending_fips.txt"
@@ -103,10 +92,10 @@ zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20
 #ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
-#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -117,9 +106,9 @@ ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\
 #View(ohio_canc)
 
 
-```
 
-```{r create_smr, include=FALSE}
+
+## ----create_smr, include=FALSE-----------------------------------------------------------------------------------------------------------------------------
 
 #creating smr
 ohio_canc$smr <- ohio_canc$Obs/ohio_canc$Exp
@@ -141,20 +130,17 @@ ohio_canc$Z <- log(ohio_canc$smr)
 ohio_canc$varZ <- 1/(ohio_canc*ohio_canc$smr)
 ohio_canc$precZ <- 1/ohio_canc$varZ
 
-```
 
 
-```{r merging_data, include=FALSE}
+## ----merging_data, include=FALSE---------------------------------------------------------------------------------------------------------------------------
 
 ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
 ohmap <- ohmap[order(ohmap$fips),]            #ordering fips so that counties align in data sets
 ohmap <- merge(ohmap,ohio_canc,by="fips")
 
-```
 
 
-
-```{r inla_graph_file, include=FALSE}
+## ----inla_graph_file, include=FALSE------------------------------------------------------------------------------------------------------------------------
 
 #creating graph file (what is this doing?)
 nb.map <- poly2nb(ohmap)
@@ -167,12 +153,9 @@ ohio_canc$Region <- 1:nrow(ohmap)
 #I get twice the number of regions as there are (176 as opposed to 88)
 #ohmap$Region <- ohmap$fips
 
-```
 
-###Question 1
-(a) The posterior median of $\beta$ is -0.0292 (95% CI: -0.0784-0.0138). The total variance of the random effects is 0.128 (95% CI: 0.082-0.128) and the proportion of the total variance that we can attribute to the spatial random effects is 0.0747 (95% CI: 0.0045-0.4967). 
 
-```{r inla_fit, include=FALSE}
+## ----inla_fit, include=FALSE-------------------------------------------------------------------------------------------------------------------------------
 
 #for this we are fitting a spatially smoothed ICAR model using the INLA function
 
@@ -217,13 +200,9 @@ prop.1 <- ohio.fit1$summary.hyperpar$`0.5quant`[2]         #proportion of total 
 
 
 
-```
 
-(b) 
 
-**Figure 1: Map of relative risk estimates for cancer in Ohio using an ICAR spatially smoothed model.** 
-
-```{r map_setup_ICAR_1}
+## ----map_setup_ICAR_1--------------------------------------------------------------------------------------------------------------------------------------
 
 #diff is the non-spatial random effects
 diff <- ohio.fit1$summary.random$Region[1:88, 2] - 
@@ -243,22 +222,17 @@ spplot(ohmap, c("postRR"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu"
 #spplot(ohmap, c("REsnonspat"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
 #spplot(ohmap, c("REsspat"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
 
-```
 
 
-
-```{r inla_nonspatial_map3, include=FALSE}
+## ----inla_nonspatial_map3, include=FALSE-------------------------------------------------------------------------------------------------------------------
 
 ohmap$RRlnorm.2 <- lnormRRs.2
 spplot(ohmap, c("RRlnorm.2"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
 
 
-```
-
--->
 
 
-```{r inla_nonspatial_fit, include=FALSE}
+## ----inla_nonspatial_fit, include=FALSE--------------------------------------------------------------------------------------------------------------------
 
 #setting priors
 pcprec <- list(theta = list(prior = "pc.prec",
@@ -278,11 +252,9 @@ expbetaOmed
 sdmed
 
 
-```
 
 
-
-```{r inla_nonspatial_map, include=FALSE}
+## ----inla_nonspatial_map, include=FALSE--------------------------------------------------------------------------------------------------------------------
 
 ohio.fit2$summary.fixed
 
@@ -292,37 +264,31 @@ lnormREs.2 <- exp(ohio.fit2$summary.random$Region[5])
 lnormRRs.2 <- as.double(exp(lnorminter.2)) * lnormREs.2[,1]
 
 
-```
 
 
-```{r inla_nonspatial_map2, include=FALSE}
+## ----inla_nonspatial_map2, include=FALSE-------------------------------------------------------------------------------------------------------------------
 
 ohmap$RRlnorm.2 <- lnormRRs.2
 spplot(ohmap, c("RRlnorm.2"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
 
 
-```
 
 
-
-```{r map_smr, include=FALSE}
+## ----map_smr, include=FALSE--------------------------------------------------------------------------------------------------------------------------------
 
 spplot(ohmap, c("smr"), at = c(0,0.2,0.4,0.6, 0.8, 1, 1.2, 1.4, 1.6), col.regions = rev(brewer.pal(8, "RdBu")))
 
-```
 
 
-```{r plot_diff, include=FALSE}
+## ----plot_diff, include=FALSE------------------------------------------------------------------------------------------------------------------------------
 
 plot(ohmap$smr, ohio.fit1$summary.fitted.values[,4],
      xlab="Gamma fitted", ylab="Spatial fitted")
 abline(0,1)
 
-```
 
-**Figure 2: Plot of direct estimates (SMR) and spatially fitted estimates**
 
-```{r compare_fit_smr}
+## ----compare_fit_smr---------------------------------------------------------------------------------------------------------------------------------------
 
 
 plot(ohio_canc$smr, ohmap$postRR,
@@ -330,25 +296,17 @@ plot(ohio_canc$smr, ohmap$postRR,
 abline(0,1)
 
 
-```
 
 
-**Figure 3: Plot of non-spatially fitted estimates and spatially fitted estimates**
-
-```{r compare_fit_nonspatial}
+## ----compare_fit_nonspatial--------------------------------------------------------------------------------------------------------------------------------
 
 plot(ohmap$RRlnorm.2, ohmap$postRR, 
      xlab="Non-spatial fitted", ylab="Spatial fitted")
 abline(0,1)
 
-```
 
 
-
-###Question 2
-
-
-```{r load_kc_data, include=FALSE}
+## ----load_kc_data, include=FALSE---------------------------------------------------------------------------------------------------------------------------
 
 #reading in BRFSS data
 data(BRFSS)
@@ -367,10 +325,9 @@ colnames(mat) <- rownames(mat)
 mat <- as.matrix(mat[1:dim(mat)[1], 1:dim(mat)[1]])
 mat[1:2, 1:2]
 
-```
 
 
-```{r survey, include=FALSE}
+## ----survey, include=FALSE---------------------------------------------------------------------------------------------------------------------------------
 
 #calculating weighted non-smoothed estimates
 library(survey)
@@ -379,10 +336,9 @@ design <- svydesign(ids=~1, weights = ~rwt_llcp,
 direct <- svyby(~smoker1, ~hracode, design, svymean)
 head(direct, n=2)
 
-```
 
 
-```{r generic_fit, include=FALSE}
+## ----generic_fit, include=FALSE----------------------------------------------------------------------------------------------------------------------------
 
 #smoothed, non-weighted estimates and non-smoothed, non-weighted estimates
 smoothed <- fitGeneric(data=brfss, geo=KingCounty,
@@ -398,10 +354,9 @@ head(smoothed$HT, n=1)
 
 
 
-```
 
 
-```{r map_smooth, include=FALSE}
+## ----map_smooth, include=FALSE-----------------------------------------------------------------------------------------------------------------------------
 
 if (!require(gpclib)) install.packages("gpclib", type="source")
 gpclibPermit()
@@ -413,10 +368,9 @@ mapPlot(data = toplot, geo=KingCounty,
         labels=c("Posterior Mean"), by.data="region",
         by.geo="HRA2010v2_")
 
-```
 
 
-```{r map_weight_smooth}
+## ----map_weight_smooth-------------------------------------------------------------------------------------------------------------------------------------
 
 svysmoothed <- fitGeneric(data=brfss, geo=KingCounty,
        Amat = mat, responseType="binary", responseVar="diab2",
@@ -432,21 +386,18 @@ var <- data.frame(naive=smoothed$HT$HT.variance.original,
     weighted=svysmoothed$HT$HT.variance.original,
     smooth=smoothed$smooth$variance.original, weightedsmooth=svysmoothed$smooth)
 
-```
 
 
-```{r model_output, include=FALSE}
+## ----model_output, include=FALSE---------------------------------------------------------------------------------------------------------------------------
 
 P2 <- data.frame(HRA=smoothed$HT$region, "Simple Proportion"=smoothed$HT$HT.est.original, "Posterior Median Estimates"=smoothed$smooth$median.original, "Weighted Direct Estimates"=svysmoothed$HT$HT.est.original, 
 "Smoothed Direct Estimates"=svysmoothed$smooth$median.original)
 
 P2[1:48,]
 
-```
 
 
-
-```{r model_compare}
+## ----model_compare-----------------------------------------------------------------------------------------------------------------------------------------
 
 est <- data.frame(naive = smoothed$HT$HT.est.original,
                   weighted = svysmoothed$HT$HT.est.original,
@@ -465,9 +416,6 @@ print(g3)
 print(g4)
 library(gridExtra)
 grid.arrange(grobs = list(g1, g3, g2, g4), ncol = 2)
-
-
-```
 
 
 
