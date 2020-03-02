@@ -1,0 +1,150 @@
+---
+title: "Spatial HW 4"
+author: "David Coomes"
+date: "March 2, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=TRUE, message=FALSE)
+```
+
+
+
+```{r load_packages, include=FALSE}
+
+if (!require(spdep)) install.packages("spdep", repos = "http://cran.us.r-project.org")
+if (!require(raster)) install.packages("raster", repos = "http://cran.us.r-project.org")
+if (!require(leaflet)) install.packages("leaflet", repos = "http://cran.us.r-project.org")
+if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
+
+
+
+```
+
+
+```{r install_packages, include=FALSE}
+
+rm(list=ls())
+library(haven)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(SUMMER)
+
+
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+
+```{r install_packages, include=FALSE}
+
+if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
+  install.packages("INLA", repos = c(getOption("repos"), 
+          INLA = "https://inla.r-inla-download.org/R/stable"),
+          dep=TRUE)
+}
+
+
+if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
+if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if (!require(haven)) install.packages("haven")
+if (!require(rgeos)) install.packages("rgeos")
+if (!require(rgdal)) install.packages("rgdal")
+if (!require(maptools)) install.packages("maptools")
+if (!require(sp)) install.packages("sp")
+if (!require(spdep)) install.packages("spdep")
+if (!require(SpatialEpi)) install.packages("SpatialEpi")
+if (!require(RColorBrewer)) install.packages("RColorBrewer")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(maps)) install.packages("maps")
+if (!require(broom)) install.packages("broom")
+if (!require(raster)) install.packages("raster")
+if (!require(leaflet)) install.packages("leaflet")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyverse)) install.packages("tidyverse")
+if (!require(SUMMER)) install.packages("SUMMER")
+
+
+```
+
+
+```{r load_packages, include=FALSE}
+
+rm(list=ls())
+library(foreign)
+library(haven)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(tidyverse)
+library(SUMMER)
+library(rgeos)
+
+```
+
+
+```{r, eval=TRUE, results='hide', warning=FALSE, message=FALSE, include=FALSE}
+
+#Cancer data
+
+#using github
+link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_2019_version.txt"
+ohio_canc <- read.table(url(link), header=TRUE)
+
+#pc in office
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+
+#laptop
+#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+
+#computer in library
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+
+#ordering of regions is not the same among the data sets - how do we align these two?
+#summary(ohmap)
+#ohmap$COUNTYFP00
+
+
+```
+
+
+```{r fit_poisson}
+
+mod <- glm(data=ohio_canc, Obs ~ 1, offset=log(Exp), family="quasipoisson")
+kappaest <- kappaval(Obs, mod$fitted, mod$df.resid)
+nMC <- 1000
+ncts <- length(Exp)
+yMC <- matrix(rpois(n=nMC * ncts, lambda=Exp),
+              nrow=ncts, ncol=nMC)
+kappaMC <- NULL
+
+for (i in 1:nMC) {
+  modMC <- glm(yMC[,i] ~ 1, offset=log(Exp),
+               family="quasipoisson")
+  kappaMC[i] <- kappaval(yMC[,i], modMC$fitted,
+               modMC$df.redis)
+}
+
+```
+
