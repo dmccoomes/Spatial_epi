@@ -22,6 +22,7 @@ if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
 
 if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
 if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if (!require(zscorer)) install.packages("zscorer")
 
 
 
@@ -52,6 +53,7 @@ library(leaflet)
 library(dplyr)
 library(tidyverse)
 library(SUMMER)
+library(zscorer)
 
 ```
 
@@ -67,9 +69,11 @@ et_w3_anth <- read_dta(url(link_3))
 # summary(et_w3_anth)
 # View(et_w3_anth)
 
+#keeping only those we need
 keep_vars <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01", "saq02", "saq03", "saq04", "saq05", "saq06", "saq07", "hh_s3q12_a", "hh_s3q20a", "hh_s3q20d", "hh_s3q20e", "hh_s3q21_a", "hh_s3q21_b", "hh_s3q21_c", "hh_s3q22", "hh_s3q23")    
 et_w3_anth <- et_w3_anth[keep_vars]
 
+#renaming variables
 et_w3_anth <- et_w3_anth %>%
   rename(
     u_5 = hh_s3q12_a,
@@ -88,31 +92,43 @@ link_cover = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20projec
 et_w3_cover <- read_dta(url(link_cover))
 # View(et_w3_cover)
 
+et_w3_cover <- et_w3_cover %>%
+  rename(
+    int_day=hh_saq13_a,
+    int_month=hh_saq13_b,
+    int_year=hh_saq13_c
+  )
+
 #downloading section 1
 link_1 = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Raw%20data/ESS%20Wave%203/Ethiopia%20Wave%203%20data/ETH_2015_ESS_v02_M_STATA8/Household/sect1_hh_w3.dta"
 et_w3_hh <- read_dta(url(link_1))
 
 #Merging household cover data with health data
-et_w3_health <- merge(et_w3_cover, et_w3_anth, no.dups=TRUE)
-View(et_w3_health)
+et_w3_health <- merge(et_w3_anth, et_w3_cover, no.dups=TRUE)
+#View(et_w3_health)
 
-et_w3_health <- merge(et_w3_hh, et_w3_health, no.dups=TRUE)
+et_w3_health <- merge(et_w3_health, et_w3_hh, no.dups=TRUE)
 summary(et_w3_health$hh_s1q04h)
  
 #keeping only some variables
-keep_vars <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01")
+#keep_vars <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01")
+
+#subset - only keep children under 5
+et_w3_data <- subset(et_w3_health, u_5==1)
 
 #renaming variables
-et_w3_health <- et_w3_health %>%
+et_w3_data <- et_w3_data %>%
   rename(
-    age = hh_s1q04h,
-    birth_day = hh_s1q04g_1,
-    birth_month = hh_s1q04g_2,
-    birth_year = hh_s1q04g_3
+    age=hh_s1q04h
   )
 
-colnames(et_w3_health)
-summary(et_w3_health$age)
+et_w3_data <- et_w3_data  %>%
+  select(household_id2, rural, pw_w3, individual_id2, ea_id2, u_5, weight_kg, height_cm, birth_month, birth_year, age, int_day, int_month, int_year)
+
+summary(et_w3_data$age)
+
+colnames(et_w3_data)
+summary(et_w3_data$age)
 
 #keeping only those that report 
 
@@ -120,5 +136,24 @@ summary(et_w3_health$age)
 #et_w3_health$year <- et_w3_health$ et_w3_health$hh_saq13_c
 
 ```
+
+
+
+Reading the shape file into R
+```{r map, eval=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+library(rgdal)
+#on laptop
+et_admin2_Map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP",stringsAsFactors=F) 
+
+```
+
+
+```{r}
+
+plot(et_admin_Map)
+
+```
+
 
 
