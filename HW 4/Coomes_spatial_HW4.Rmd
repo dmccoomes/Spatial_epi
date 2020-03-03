@@ -113,10 +113,10 @@ link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_201
 ohio_canc <- read.table(url(link), header=TRUE)
 
 #pc in office
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
-#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
 #ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
@@ -125,26 +125,136 @@ ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW
 #summary(ohmap)
 #ohmap$COUNTYFP00
 
+#creating neighbor file
+nb.map <- poly2nb(ohmap)
+
+
 
 ```
 
 
-```{r fit_poisson}
+```{r}
 
-mod <- glm(data=ohio_canc, Obs ~ 1, offset=log(Exp), family="quasipoisson")
-kappaest <- kappaval(Obs, mod$fitted, mod$df.resid)
-nMC <- 1000
-ncts <- length(Exp)
-yMC <- matrix(rpois(n=nMC * ncts, lambda=Exp),
-              nrow=ncts, ncol=nMC)
-kappaMC <- NULL
+set.seed(03022020)
 
-for (i in 1:nMC) {
-  modMC <- glm(yMC[,i] ~ 1, offset=log(Exp),
-               family="quasipoisson")
-  kappaMC[i] <- kappaval(yMC[,i], modMC$fitted,
-               modMC$df.redis)
+```
+
+
+### Question 1
+
+```{r fit_poisson_morans}
+
+
+col.W <- nb2listw(nb.map, style="W",zero.policy=TRUE)
+col.B <- nb2listw(nb.map, style="B",zero.policy=TRUE)
+
+# kappaval <- function(Obs, fitted, df) {
+#   sum((Obs - fitted)^2/fitted)/df
+# }
+
+#fitting poisson model
+quasip_mod <- glm(data=ohio_canc, Obs ~ 1, offset=log(Exp), family=quasipoisson())
+sidsres <- residuals(quasip_mod, type="pearson")
+moran.test(sidsres, col.W)
+
+
+
+# kappaest <- kappaval(ohio_canc$Obs, mod$fitted, mod$df.resid)
+# nMC <- 1000
+# ncts <- length(ohio_canc$Exp)
+# yMC <- matrix(rpois(n=nMC * ncts, lambda=ohio_canc$Exp),
+#               nrow=ncts, ncol=nMC)
+# kappaMC <- NULL
+# for (i in 1:nMC){
+#  modMC <- glm(yMC[,i]~1,offset=log(ohio_canc$Exp),family="quasipoisson")
+#  kappaMC[i] <- kappaval(yMC[,i],modMC$fitted,modMC$df.resid)
+# }
+
+```
+
+
+```{r fit_geary}
+
+#add in latitude and longitude to run geary test
+ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
+#ordering fips so that counties align in data sets:
+#ohmap <- ohmap[order(ohmap$fips),]            
+ohio_canc2 <- merge(ohio_canc, ohmap, by.x="fips", by.y="fips")
+
+ohio_canc2$lat <- as.character(as.numeric(ohio_canc2$INTPTLAT00))
+ohio_canc2$lon <- as.character(as.numeric(ohio_canc2$INTPTLON00))
+
+#fitting poisson model
+quasip_mod2 <- glm(data=ohio_canc2, Obs ~ lat + lon, offset=log(Exp),
+                  family=quasipoisson())
+sidsres2 <- residuals(quasip_mod2, type="pearson")
+
+
+geary.test(sidsres2,col.W)
+
+
+```
+
+
+```{r hist_kappa, include=FALSE}
+
+#don't need this
+hist(kappaMC, xlim=c(min(kappaMC),
+          max(kappaMC, kappaest)), main="",
+          xlab = expression(kappa))
+abline(v=kappaest, col="red")
+
+```
+
+
+
+### Question 2
+
+```{r}
+
+library(SpatialEpi)
+pop.upper.bound <- 20
+n.simulations <- 1000
+alpha.level <- 0.05
+
+#need to create this - slide 39?
+#geo <- latlong2grid(coordinates(ohmap))
+
+getLabelPoint <- function(fips) {
+  Polygon(fips[c("INTPTLON00", "INTPTLAT00")])@labpt
 }
 
+centOH <- by(ohmap, ohmap$fips, getLabelPoint)
+
+Kpoisson <- kulldorff(geo, ohio_canc2$Obs, population=ohio_canc2$N,
+                      expected.cases=NULL,
+                      pop.upper.bound, n.simulations, alpha.level, plot=T)
+
+            
+
 ```
+
+
+
+
+
+### Question 3
+
+```{r}
+
+if (!require(geoR)) install.packages("geoR")
+library(geoR)
+data("ca20")
+plot(ca20)
+
+```
+
+
+```{r}
+
+cloudca <- variog(ca20, option="cloud")
+
+```
+
+
 
