@@ -113,10 +113,10 @@ link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_201
 ohio_canc <- read.table(url(link), header=TRUE)
 
 #pc in office
-#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
-ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
 #ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
@@ -142,21 +142,48 @@ set.seed(03022020)
 
 ### Question 1
 
-```{r fit_poisson_morans}
+(a) Using Moran's statistic and standardized weights ("W" option) we do not find significant clustering of cancer in our data (p=0.177). The significance is reduced further if we adjust for latitude and longitude to control for large-scale trends (p=0.377). We see similar results (non-significance) using non-standardized weights ("B" option). 
+
+```{r fit_poisson_morans, include=FALSE}
 
 
 col.W <- nb2listw(nb.map, style="W",zero.policy=TRUE)
 col.B <- nb2listw(nb.map, style="B",zero.policy=TRUE)
 
+#Merging map and cancer data together to include lat and lon in cancer data
+ohio_canc2 <- ohio_canc
+ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
+ohmap$lat <- ohmap$INTPTLAT00
+ohmap$lon <- ohmap$INTPTLON00
+ohio_canc2 <- merge(ohio_canc2, ohmap[, c("fips", "lat", "lon")], by.x="fips", by.y="fips")
+#ohio_canc2 <- merge(ohio_canc2, ohmap, by="fips")
+#ohio_canc2$lat <- as.character(as.numeric(ohio_canc2$lat))
+#ohio_canc2$lon <- as.character(as.numeric(ohio_canc2$lon))
+
+ohio_canc2$lat <- as.numeric(as.character(ohio_canc2$lat))
+ohio_canc2$lon <- as.numeric(as.character(ohio_canc2$lon))
+
+
 # kappaval <- function(Obs, fitted, df) {
 #   sum((Obs - fitted)^2/fitted)/df
 # }
 
-#fitting poisson model
+#fitting poisson model without covariates
 quasip_mod <- glm(data=ohio_canc, Obs ~ 1, offset=log(Exp), family=quasipoisson())
 sidsres <- residuals(quasip_mod, type="pearson")
 moran.test(sidsres, col.W)
 
+#running Moran test using B weight option
+moran.test(sidsres, col.B)
+
+
+#fitting poisson model with covariates
+quasip_mod.1 <- glm(data=ohio_canc2, Obs ~ lat + lon, offset=log(Exp), family=quasipoisson())
+summary(quasip_mod.1)         #latitude is higly significant (p=0.0018), lon is not (p=0.132)
+sidsres.1 <- residuals(quasip_mod.1, type="pearson")
+moran.test(sidsres.1, col.W)
+
+moran.test(sidsres.1, col.B)
 
 
 # kappaest <- kappaval(ohio_canc$Obs, mod$fitted, mod$df.resid)
@@ -172,65 +199,78 @@ moran.test(sidsres, col.W)
 
 ```
 
+<br>
+
+(b) Using Geary's test and standardized weights ("W" option), we find no evidence of cancer clustering using unadjusted residuals (p=0.208) or residuals adjusted for lat and lon (p=0.381). We see similar results (non-significance) when using non-standardized weights ("B" option).  
 
 ```{r fit_geary}
 
-#add in latitude and longitude to run geary test
-ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
-#ordering fips so that counties align in data sets:
-#ohmap <- ohmap[order(ohmap$fips),]            
-ohio_canc2 <- merge(ohio_canc, ohmap, by.x="fips", by.y="fips")
+#Geary test on non-adjusted data 
+geary.test(sidsres,col.W)
+geary.test(sidsres, col.B)
 
-ohio_canc2$lat <- as.character(as.numeric(ohio_canc2$INTPTLAT00))
-ohio_canc2$lon <- as.character(as.numeric(ohio_canc2$INTPTLON00))
-
-#fitting poisson model
-quasip_mod2 <- glm(data=ohio_canc2, Obs ~ lat + lon, offset=log(Exp),
-                  family=quasipoisson())
-sidsres2 <- residuals(quasip_mod2, type="pearson")
-
-
-geary.test(sidsres2,col.W)
+#Geary test on adjusted data
+geary.test(sidsres.1, col.W)
+geary.test(sidsres.1, col.B)
 
 
 ```
 
 
-```{r hist_kappa, include=FALSE}
+<br>
 
-#don't need this
-hist(kappaMC, xlim=c(min(kappaMC),
-          max(kappaMC, kappaest)), main="",
-          xlab = expression(kappa))
-abline(v=kappaest, col="red")
+Based on these two tests, there is no evidence of cancer clustering in these data.
 
-```
-
-
+<br>
+<br>
 
 ### Question 2
 
 ```{r}
 
 library(SpatialEpi)
-pop.upper.bound <- 20
-n.simulations <- 1000
+pop.upper.bound <- 0.2
+n.simulations <- 999
 alpha.level <- 0.05
 
 #need to create this - slide 39?
 #geo <- latlong2grid(coordinates(ohmap))
 
-getLabelPoint <- function(fips) {
-  Polygon(fips[c("INTPTLON00", "INTPTLAT00")])@labpt
+ohmap2 <- readShapeSpatial(system.file("shapes/sids.shp", 
+                package = "maptools")[1], IDvar = "FIPSNO",
+                proj4string = CRS("+proj=longlat +ellps=clrk66"))
+
+
+#first,  form a matrix containing the centroids
+getLabelPoint <- function(county) {
+  Polygon(county[c("long", "lat")])@labpt
 }
 
-centOH <- by(ohmap, ohmap$fips, getLabelPoint)
+#create dataframe from map data
+#oh_df <- map_data("county", "ohio")
+oh_df <- map_data("county", "ohio")
+centOH <- by(oh_df, oh_df$subregion, getLabelPoint)
+centOH <- do.call("rbind.data.frame", centOH)
+names(centOH) <- c("long", "lat")
+
+centroids <- matrix(0, nrow=n, ncol=2)
+for (i in 1:n) {
+  centroids[i, ] <- c(centOH$lat[i], centOH$long[i])
+}
 
 Kpoisson <- kulldorff(geo, ohio_canc2$Obs, population=ohio_canc2$N,
                       expected.cases=NULL,
                       pop.upper.bound, n.simulations, alpha.level, plot=T)
 
             
+
+nc.sids <- readShapeSpatial(system.file("shapes/sids.shp",
+package = "maptools")[1], IDvar = "FIPSNO",
+proj4string = CRS("+proj=longlat +ellps=clrk66"))
+
+df <- map_data("county", "ohio")
+
+
 
 ```
 
