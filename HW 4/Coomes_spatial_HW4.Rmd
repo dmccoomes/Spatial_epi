@@ -246,6 +246,10 @@ getLabelPoint <- function(county) {
   Polygon(county[c("long", "lat")])@labpt
 }
 
+
+#other way to create centroids
+centroids <- latlong2grid(coordinates(sp.obj))
+
 #create dataframe from map data
 #oh_df <- map_data("county", "ohio")
 oh_df <- map_data("county", "ohio")
@@ -268,7 +272,6 @@ nc.sids <- readShapeSpatial(system.file("shapes/sids.shp",
 package = "maptools")[1], IDvar = "FIPSNO",
 proj4string = CRS("+proj=longlat +ellps=clrk66"))
 
-df <- map_data("county", "ohio")
 
 
 
