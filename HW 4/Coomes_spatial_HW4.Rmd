@@ -5,6 +5,14 @@ date: "March 2, 2020"
 output: html_document
 ---
 
+
+```{r}
+
+if (!require(knitr)) install.packages("knitr")
+
+```
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=TRUE, message=FALSE)
 ```
@@ -22,30 +30,6 @@ if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-proje
 
 ```
 
-
-```{r install_packages, include=FALSE}
-
-rm(list=ls())
-library(haven)
-library(INLA)
-library(rgdal)
-library(maptools)
-library(sp)
-library(spdep)
-library(SpatialEpi)
-library(RColorBrewer)
-library(ggplot2)
-library(maps)
-library(broom)
-library(raster)
-library(leaflet)
-library(dplyr)
-library(SUMMER)
-
-
-knitr::opts_chunk$set(echo = FALSE)
-
-```
 
 ```{r install_packages, include=FALSE}
 
@@ -77,6 +61,32 @@ if (!require(SUMMER)) install.packages("SUMMER")
 
 
 ```
+
+
+```{r install_packages, include=FALSE}
+
+rm(list=ls())
+library(haven)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(SUMMER)
+
+
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+
 
 
 ```{r load_packages, include=FALSE}
@@ -113,13 +123,13 @@ link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_201
 ohio_canc <- read.table(url(link), header=TRUE)
 
 #pc in office
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
 #ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
-#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -203,7 +213,7 @@ moran.test(sidsres.1, col.B)
 
 (b) Using Geary's test and standardized weights ("W" option), we find no evidence of cancer clustering using unadjusted residuals (p=0.208) or residuals adjusted for lat and lon (p=0.381). We see similar results (non-significance) when using non-standardized weights ("B" option).  
 
-```{r fit_geary}
+```{r fit_geary, include=FALSE}
 
 #Geary test on non-adjusted data 
 geary.test(sidsres,col.W)
@@ -226,11 +236,13 @@ Based on these two tests, there is no evidence of cancer clustering in these dat
 
 ### Question 2
 
-```{r}
+(a) Using the SatScan method of Kulldorff with a maximum population size of 20%, these data are significantly clustered (p=0.044). 
+
+```{r sat_scan, include=FALSE}
 
 library(SpatialEpi)
 pop.upper.bound <- 0.2
-n.simulations <- 999
+n.simulations <- 5000
 alpha.level <- 0.05
 
 #need to create this - slide 39?
@@ -242,48 +254,52 @@ ohmap2 <- readShapeSpatial(system.file("shapes/sids.shp",
 
 
 #first,  form a matrix containing the centroids
-getLabelPoint <- function(county) {
-  Polygon(county[c("long", "lat")])@labpt
-}
+# getLabelPoint <- function(county) {
+#   Polygon(county[c("long", "lat")])@labpt
+# }
 
 
-#other way to create centroids
-centroids <- latlong2grid(coordinates(sp.obj))
+#other way to create centroids - is this the same way and which one is necessary for this exercise
+centroids <- latlong2grid(coordinates(ohmap))
 
 #create dataframe from map data
 #oh_df <- map_data("county", "ohio")
-oh_df <- map_data("county", "ohio")
-centOH <- by(oh_df, oh_df$subregion, getLabelPoint)
-centOH <- do.call("rbind.data.frame", centOH)
-names(centOH) <- c("long", "lat")
+# oh_df <- map_data("county", "ohio")
+# centOH <- by(oh_df, oh_df$subregion, getLabelPoint)
+# centOH <- do.call("rbind.data.frame", centOH)
+# names(centOH) <- c("long", "lat")
 
-centroids <- matrix(0, nrow=n, ncol=2)
-for (i in 1:n) {
-  centroids[i, ] <- c(centOH$lat[i], centOH$long[i])
-}
+# centroids <- matrix(0, nrow=n, ncol=2)
+# for (i in 1:n) {
+#   centroids[i, ] <- c(centOH$lat[i], centOH$long[i])
+# }
 
-Kpoisson <- kulldorff(geo, ohio_canc2$Obs, population=ohio_canc2$N,
+Kpoisson <- kulldorff(centroids, ohio_canc2$Obs, population=ohio_canc2$N,
                       expected.cases=NULL,
                       pop.upper.bound, n.simulations, alpha.level, plot=T)
 
-            
 
-nc.sids <- readShapeSpatial(system.file("shapes/sids.shp",
-package = "maptools")[1], IDvar = "FIPSNO",
-proj4string = CRS("+proj=longlat +ellps=clrk66"))
-
+Kcluster <- Kpoisson$most.likely.cluster$location.IDs.included
 
 
 
 ```
 
 
+```{r plot_cluster}
+
+#Why is this not working?
+plot(ohmap, axes=TRUE)
+plot(ohmap[Kcluster], add=TRUE, col="red")
+title("Most Likely Cluster")
+
+```
 
 
 
 ### Question 3
 
-```{r}
+```{r add_geo, include=FALSE}
 
 if (!require(geoR)) install.packages("geoR")
 library(geoR)
@@ -293,11 +309,81 @@ plot(ca20)
 ```
 
 
-```{r}
+```{r example}
 
-cloudca <- variog(ca20, option="cloud")
+data("meuse")
+zmat <- matrix(cbind(meuse$x, meuse$y, log(meuse$zinc)),
+               ncol=3, nrow=155, byrow=F)
+geozinc <- as.geodata(zmat, coords.col = c(1, 2),
+                      data.col=c(3))
 
 ```
+
+
+```{r cloud_variogram}
+
+cloudca <- variog(ca20, option="cloud")
+plot(cloudca, ylab="Semi-variance", xlab="Distance",
+     col="blue", cex=0.6)
+
+```
+
+
+
+```{r bin_variogram}
+
+#this works, but do we need to include some trend variables? I'm not sure what those are in this dataset
+binca <- variog(ca20, uvec=seq(0, 1200, 50))
+plot(binca, ylab="Semi-variance", xlab = "Distance",
+     cex=0.5, col="blue")
+
+```
+
+
+(b) 
+
+```{r monte_carlo}
+
+ca.env <- variog.mc.env(ca20, obj=binca)
+plot(binca, env=ca.env, xlab="Distance", ylab="Semi-variance")
+
+```
+
+
+```{r bin_variogram2, eval=FALSE}
+
+#controlling for altitude and exposure - this is probably more useful
+binca.1 <- variog(ca20, uvec=seq(0, 1200, 50),
+                trend = ~ca20$covariate$altitude + ca20$covariate$area)
+plot(binca.1, ylab="Semi-variance", xlab = "Distance",
+     cex=0.5, col="blue")
+
+```
+
+
+```{r monte_carlo2}
+
+ca.env <- variog.mc.env(ca20, obj=binca.1)
+plot(binca.1, env=ca.env, xlab="Distance", ylab="Semi-variance")
+
+```
+
+
+(c) 
+
+```{r ols_fit}
+
+#where do we get the numbers for the fit in this model - do they both come from the binned variogram
+olsfit <- variofit(binca, ini=c(150, 184), weights="equal")
+olsfit
+
+wlsfit <- variofit(binca, ini=c(150, 184))
+wlsfit
+
+
+```
+
+
 
 
 
