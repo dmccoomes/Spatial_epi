@@ -1,14 +1,14 @@
 ---
 title: "Spatial Epi HW 3"
-author: "David"
-date: "2/16/2020"
+author: "David Coomes"
+date: "Due February 24, 2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
 ```
 
 ```{r install_packages, include=FALSE}
@@ -64,6 +64,7 @@ library(dplyr)
 library(tidyverse)
 library(SUMMER)
 library(rgeos)
+library(gridExtra)
 
 ```
 
@@ -85,7 +86,7 @@ link = "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Data/ohio_201
 ohio_canc <- read.table(url(link), header=TRUE)
 
 #Map data
-zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20data.zip"
+#zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20data.zip"
 
 #library(utils)
 #temp=tempfile()
@@ -106,7 +107,11 @@ zip_oh_map <- "https://github.com/dmccoomes/Spatial_epi/raw/master/HW%203/Map%20
 #ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+
+#home pc
+ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
+
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -219,7 +224,9 @@ prop.1 <- ohio.fit1$summary.hyperpar$`0.5quant`[2]         #proportion of total 
 
 ```
 
-(b) 
+(b) There is a relatively large difference between the RR estiamtes from the spatially smoothed model as compared to the direct estimates, particularly for those estimates that had large and small SMR estimates. This makes us believe that the SMRs at the highest and lowest ends were driven by fairly large uncertainty. The non-spatially smoothed esitmates and the spatially smoothed estimates were quite similar. This is unsurprising as only about 7.5% of the random effects were attributed to spatial variation.
+
+<br>
 
 **Figure 1: Map of relative risk estimates for cancer in Ohio using an ICAR spatially smoothed model.** 
 
@@ -245,32 +252,7 @@ spplot(ohmap, c("postRR"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu"
 
 ```
 
-
-<!--
-```{r inla_nonspatial_map, include=FALSE}
-
-ohio.fit1$summary.fixed
-
-lnorminter.1 <- ohio.fit1$summary.fixed[4]
-lnormREs.1 <- exp(ohio.fit1$summary.random$Region[5])
-
-lnormRRs.2 <- as.double(exp(lnorminter.2)) * lnormREs.2[,1]
-
-
-```
-
-
-
-```{r inla_nonspatial_map2, include=FALSE}
-
-ohmap$RRlnorm.2 <- lnormRRs.2
-spplot(ohmap, c("RRlnorm.2"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
-
-
-```
-
--->
-
+\newpage
 
 ```{r inla_nonspatial_fit, include=FALSE}
 
@@ -357,7 +339,7 @@ abline(0,1)
 
 ```
 
-
+\newpage
 
 ###Question 2
 
@@ -417,7 +399,7 @@ head(smoothed$HT, n=1)
 
 ```{r map_smooth, include=FALSE}
 
-if (!require(gpclib)) install.packages("gpclib", type="source")
+if (!require(gpclib)) install.packages("gpclib", type="source", repos = "http://cran.us.r-project.org")
 gpclibPermit()
 
 #mapping smoothed, non-weighted estimates
@@ -430,7 +412,7 @@ mapPlot(data = toplot, geo=KingCounty,
 ```
 
 
-```{r map_weight_smooth}
+```{r map_weight_smooth, include=FALSE}
 
 svysmoothed <- fitGeneric(data=brfss, geo=KingCounty,
        Amat = mat, responseType="binary", responseVar="diab2",
@@ -446,42 +428,133 @@ var <- data.frame(naive=smoothed$HT$HT.variance.original,
     weighted=svysmoothed$HT$HT.variance.original,
     smooth=smoothed$smooth$variance.original, weightedsmooth=svysmoothed$smooth)
 
+se.prop <- sqrt(smoothed$HT$HT.variance.original)            #naive se
+se.weighted <- sqrt(svysmoothed$HT$HT.variance.original)     #weighted se
+sd.post.med <- sqrt(smoothed$smooth$variance.original)       #smoothed sd
+sd.smooth <- sqrt(svysmoothed$smooth$variance.original)      #smoothed and weighted sd
+
+
 ```
 
 
 ```{r model_output, include=FALSE}
 
-P2 <- data.frame(HRA=smoothed$HT$region, "Simple Proportion"=smoothed$HT$HT.est.original, "Posterior Median Estimates"=smoothed$smooth$median.original, "Weighted Direct Estimates"=svysmoothed$HT$HT.est.original, 
+estimates <- data.frame(HRA=smoothed$HT$region, "Simple Proportion"=smoothed$HT$HT.est.original, "Posterior Median Estimates"=smoothed$smooth$median.original, "Weighted Direct Estimates"=svysmoothed$HT$HT.est.original, 
 "Smoothed Direct Estimates"=svysmoothed$smooth$median.original)
 
-P2[1:48,]
+estimates[1:48,]
 
 ```
 
+(b) In the two panels comparing smoothed and unsmoothed estimates (1 & 3), the smoothed estimates are shifted slightly towards the mean, particularly those that are at the extreme low and high ends. This is what we would expect from smoothing. For the two panels that compare weighted to unweighted estimates (2 & 4), the unweighted estimates are larger than the weighted estimatess, with only a few exceptions. This means that this survey oversampled populations that were more likely to smoke (or it could have oversampled smokers directly). Figure 5 shows the comparison of the direct estimates to those that are weighted and smoothed. 
+
+
+<br>
+
+**Figure 4: Comparison of smoothed and weighted estimates.**
 
 
 ```{r model_compare}
 
-est <- data.frame(naive = smoothed$HT$HT.est.original,
-                  weighted = svysmoothed$HT$HT.est.original,
-                  smooth = smoothed$smooth$mean.original,
-                  weightedsmooth = svysmoothed$smooth$mean.original)
+# est <- data.frame(naive = smoothed$HT$HT.est.original,
+#                   weighted = svysmoothed$HT$HT.est.original,
+#                   smooth = smoothed$smooth$mean.original,
+#                   weightedsmooth = svysmoothed$smooth$mean.original)
 
 l1 <- range(est)
 
-g1 <- ggplot(est, aes(x = naive, y = smooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm") + ggtitle("Unweighted") + xlab("Unsmoothed") + ylab("Smoothed")+ xlim(l1) + ylim(l1) 
-g2 <- ggplot(est, aes(x = naive, y = weighted)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm") + ggtitle("Unsmoothed") + xlab("Unweighted") + ylab("Weighted")+ xlim(l1) + ylim(l1) 
-g3 <- ggplot(est, aes(x = weighted, y = weightedsmooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm") + ggtitle("Weighted") + xlab("Unsmoothed") + ylab("Smoothed") + xlim(l1) + ylim(l1)
-g4 <- ggplot(est, aes(x = smooth, y = weightedsmooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm") + ggtitle("Smoothed") + xlab("Unweighted") + ylab("Weighted")+ xlim(l1) + ylim(l1) 
-print(g1)
-print(g2)
-print(g3)
-print(g4)
-library(gridExtra)
-grid.arrange(grobs = list(g1, g3, g2, g4), ncol = 2)
+total <- ggplot(est, aes(x=naive, y=weightedsmooth)) + geom_point() + geom_abline(slope=1, intercept=0, color="red") + geom_smooth(method="lm", se=FALSE) + ggtitle("Naive compared to smoothed & weighted") + xlab("Naive") + ylab("Smooth & weighted") + xlim(l1) + ylim(l1)
+
+unweighted <- ggplot(est, aes(x = naive, y = smooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm", se=FALSE) + ggtitle("1. Unweighted estimates") + xlab("Unsmoothed") + ylab("Smoothed") + xlim(l1) + ylim(l1) 
+
+unsmoothed <- ggplot(est, aes(x = naive, y = weighted)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm", se=FALSE) + ggtitle("2. Unsmoothed estimates") + xlab("Unweighted") + ylab("Weighted")+ xlim(l1) + ylim(l1) 
+
+weighted <- ggplot(est, aes(x = weighted, y = weightedsmooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm", se=FALSE) + ggtitle("3. Weighted estimates") + xlab("Unsmoothed") + ylab("Smoothed") + xlim(l1) + ylim(l1)
+
+smoothed <- ggplot(est, aes(x = smooth, y = weightedsmooth)) + geom_point() + geom_abline(slope = 1, intercept = 0, color = "red") + geom_smooth(method = "lm", se=FALSE) + ggtitle("4. Smoothed estimates") + xlab("Unweighted") + ylab("Weighted")+ xlim(l1) + ylim(l1) 
+
+
+# print(unweighted)
+# print(unsmoothed)
+# print(weighted)
+# print(smoothed)
+
+# print(total)
+
+
+grid.arrange(grobs = list(unweighted, unsmoothed, weighted, smoothed), ncol = 2)
+
+
+```
+
+\newpage
+
+**Figure 5: Comparison of direct estimates to smoothed and weigthed estimates.**
+
+```{r}
+
+print(total)
+
+```
+
+
+\newpage
+
+(c) Comparing the smoothed to unsmoothed standard deviations and standard errors (1 & 3), the smoothed observations are lower in general than the unsmoothed observations. The smoothed and unsmoothed are similar for lower estimates, however, as the standard deviation or standard error gets larger the smoothed estimates become further away from the unsmoothed estimates. Comparing the weighted and unweighted standard deviations and standard errors (2 & 4), there is no pattern or marked difference.  
+
+
+**Figure 6: Comparison of variance from smoothed and weighted estimates.**
+
+```{r}
+
+unweighted_var <- ggplot(est, aes(x=se.prop, y=sd.post.med)) + geom_point() + geom_abline(slope=1, intercept=0, color="red") + geom_smooth(method="lm", se=FALSE) + ggtitle("1. Unweighted variance") + xlab("Unsmoothed") + ylab("Smoothed")
+
+unsmoothed_var <- ggplot(est, aes(x=se.prop, y=se.weighted)) + geom_point() + geom_abline(slope=1, intercept=0, color="red") + geom_smooth(method="lm", se=FALSE) + ggtitle("2. Unsmoothed variance") + xlab("Unweighted") + ylab("Weighted") 
+
+weighted_var <- ggplot(est, aes(x=se.weighted, y=sd.smooth)) + geom_point() + geom_abline(slope=1, intercept=0, color="red") + geom_smooth(method="lm", se=FALSE) + ggtitle("3. Weighted variance") + xlab("Unsmoothed") + ylab("Smoothed") 
+
+smoothed_var <- ggplot(est, aes(x=sd.post.med, y=sd.smooth)) + geom_point() + geom_abline(slope=1, intercept=0, color="red") + geom_smooth(method="lm", se=FALSE) + ggtitle("4. Smoothed variance") + xlab("Unweighted") + ylab("Weighted") 
+
+grid.arrange(grobs = list(unweighted_var, unsmoothed_var, weighted_var, smoothed_var), ncol = 2)
+
+
+#print(g1)
+
+```
+
+
+\newpage
+
+(d) Since our data set is weighted, we must use a weighted estimate otherwise our estimates will be biased. This leaves us with the choice of using either a smoothed model or an unsmoothed model (direct estimates). Panel 3 of the two prior figures illustrates the comparison of the estimates and the variance between smoothed and unsmoothed weighted estimates. By smoothing the weighted estimates, we gain some precision and pull some of the outlying areas towards the overall mean. The model that we should use (and is represented in Figure 7) is the weighted and smoothed estimates of smoking prevalence in King County by area. 
+
+<br>
+
+**Figure 7: Estimates of the smoking prevalence by area in King County using a spatially smoothed model.**
+
+
+```{r, include=FALSE}
+
+#mapping smoothed, non-weighted estimates
+toplot <- svysmoothed$smooth
 
 
 ```
 
 
+```{r, echo=FALSE, warning=FALSE}
+
+mapPlot(data = toplot, geo=KingCounty,
+        variables=c("mean.original"), 
+        labels=c("King County smoking prevalence"), by.data="region",
+        by.geo="HRA2010v2_")
+
+```
+
+\newpage
+
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
 
