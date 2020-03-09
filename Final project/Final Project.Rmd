@@ -95,26 +95,15 @@ link_1 = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Ra
 et_w3_hh <- read_dta(url(link_1))
 
 #Merging household cover data with health data
-et_w3_health <- merge(et_w3_cover, et_w3_anth, no.dups=TRUE)
-View(et_w3_health)
 
-et_w3_health <- merge(et_w3_hh, et_w3_health, no.dups=TRUE)
 summary(et_w3_health$hh_s1q04h)
  
 #keeping only some variables
-keep_vars <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01")
 
 #renaming variables
-et_w3_health <- et_w3_health %>%
   rename(
-    age = hh_s1q04h,
-    birth_day = hh_s1q04g_1,
-    birth_month = hh_s1q04g_2,
-    birth_year = hh_s1q04g_3
   )
 
-colnames(et_w3_health)
-summary(et_w3_health$age)
 
 #keeping only those that report 
 

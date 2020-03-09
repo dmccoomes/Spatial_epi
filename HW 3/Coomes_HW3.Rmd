@@ -8,7 +8,48 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+<<<<<<< HEAD
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+=======
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+```{r load_packages, include=FALSE}
+
+if (!require(spdep)) install.packages("spdep", repos = "http://cran.us.r-project.org")
+if (!require(raster)) install.packages("raster", repos = "http://cran.us.r-project.org")
+if (!require(leaflet)) install.packages("leaflet", repos = "http://cran.us.r-project.org")
+if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-project.org")
+
+
+
+```
+
+
+```{r install_packages, include=FALSE}
+
+rm(list=ls())
+library(haven)
+library(INLA)
+library(rgdal)
+library(maptools)
+library(sp)
+library(spdep)
+library(SpatialEpi)
+library(RColorBrewer)
+library(ggplot2)
+library(maps)
+library(broom)
+library(raster)
+library(leaflet)
+library(dplyr)
+library(SUMMER)
+
+
+knitr::opts_chunk$set(echo = FALSE)
+
+>>>>>>> 6993bf8a813e7eb2ef6c9cba0ccb3cdce1081199
 ```
 
 ```{r install_packages, include=FALSE}
@@ -101,17 +142,20 @@ ohio_canc <- read.table(url(link), header=TRUE)
 #ohmap <- readOGR(dsn = maplink, layer="ohio_map")
 
 #pc in office
-#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
+ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\HW 3\\Data\\Map data", layer="ohio_map")
 
 #laptop
 #ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
 #ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+<<<<<<< HEAD
 
 #home pc
 ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
+=======
+>>>>>>> 6993bf8a813e7eb2ef6c9cba0ccb3cdce1081199
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -152,7 +196,7 @@ ohio_canc$precZ <- 1/ohio_canc$varZ
 ```{r merging_data, include=FALSE}
 
 ohmap$fips <- as.numeric(as.character(ohmap$CNTYIDFP00))
-ohmap <- ohmap[order(ohmap$fips),]            #ordering fips so that counties align in data sets
+#ohmap <- ohmap[order(ohmap$fips),]            #ordering fips so that counties align in data sets
 ohmap <- merge(ohmap,ohio_canc,by="fips")
 
 ```
@@ -167,7 +211,9 @@ nb2INLA("ohmap.graph", nb.map)
 
 #creating region variable in the cancer data
 #ohio_canc <- ohio_canc[order(ohio_canc$fips),]     #not sure if I need to do this?
-ohio_canc$Region <- 1:nrow(ohmap)
+
+# I did this in reference to the map data, but I think that I should have done it in reference to the cancer data
+ohio_canc$Region <- 1:nrow(ohio_canc)
 
 #I get twice the number of regions as there are (176 as opposed to 88)
 #ohmap$Region <- ohmap$fips
@@ -212,10 +258,11 @@ post.med.1_low <- ohio.fit1$summary.fixed[3]           #posterior med low
 post.med.1_high <- ohio.fit1$summary.fixed[5]          #posterior med high
 
 
-var.ran <- 1/sqrt(ohio.fit1$summary.hyperpar$`0.5quant`[1])         #total variance of random effects
-var.ran_low <- 1/sqrt(ohio.fit1$summary.hyperpar$`0.025quant`[1])
-var.ran_high <- 1/sqrt(ohio.fit1$summary.hyperpar$`0.975quant`[1])
+var.ran <- 1/ohio.fit1$summary.hyperpar$`0.5quant`[1]        #total variance of random effects
+var.ran_low <- 1/ohio.fit1$summary.hyperpar$`0.025quant`[1]
+var.ran_high <- 1/ohio.fit1$summary.hyperpar$`0.975quant`[1]
 
+var.ran
 
 prop.1 <- ohio.fit1$summary.hyperpar$`0.5quant`[2]         #proportion of total variance due to random effects
 
@@ -252,7 +299,22 @@ spplot(ohmap, c("postRR"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu"
 
 ```
 
+<<<<<<< HEAD
 \newpage
+=======
+
+
+```{r inla_nonspatial_map3, include=FALSE}
+
+ohmap$RRlnorm.2 <- lnormRRs.2
+spplot(ohmap, c("RRlnorm.2"), col.regions=colorRampPalette(rev(brewer.pal(8, "RdBu")))(50))
+
+
+```
+
+-->
+
+>>>>>>> 6993bf8a813e7eb2ef6c9cba0ccb3cdce1081199
 
 ```{r inla_nonspatial_fit, include=FALSE}
 
@@ -370,6 +432,8 @@ mat[1:2, 1:2]
 
 #calculating weighted non-smoothed estimates
 library(survey)
+
+#creating survey weights
 design <- svydesign(ids=~1, weights = ~rwt_llcp,
                     strata = ~strata, data=brfss)
 direct <- svyby(~smoker1, ~hracode, design, svymean)
@@ -414,8 +478,9 @@ mapPlot(data = toplot, geo=KingCounty,
 
 ```{r map_weight_smooth, include=FALSE}
 
+
 svysmoothed <- fitGeneric(data=brfss, geo=KingCounty,
-       Amat = mat, responseType="binary", responseVar="diab2",
+       Amat = mat, responseType="binary", responseVar="smoker1",
        strataVar="strata", weightVar="rwt_llcp", regionVar="hracode",
        clusterVar="~1", CI=0.95)
 
