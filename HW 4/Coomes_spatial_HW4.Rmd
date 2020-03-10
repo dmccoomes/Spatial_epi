@@ -2,11 +2,13 @@
 title: "Spatial HW 4"
 author: "David Coomes"
 date: "March 2, 2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 
-```{r}
+```{r, include=FALSE}
 
 if (!require(knitr)) install.packages("knitr")
 
@@ -63,7 +65,7 @@ if (!require(SUMMER)) install.packages("SUMMER")
 ```
 
 
-```{r install_packages, include=FALSE}
+```{r install_packages2, include=FALSE}
 
 rm(list=ls())
 library(haven)
@@ -89,7 +91,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 
-```{r load_packages, include=FALSE}
+```{r load_packages2, include=FALSE}
 
 rm(list=ls())
 library(foreign)
@@ -129,7 +131,11 @@ ohio_canc <- read.table(url(link), header=TRUE)
 #ohmap <- readOGR(dsn="/Users/david/Documents/GitHub/Spatial_epi/HW 3/Map data", layer="ohio_map")
 
 #computer in library
-ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+#ohmap <- readOGR(dsn="C:\\Users\\dcoomes\\Documents\\GitHub\\Spatial_epi\\HW 3\\Map data", layer="ohio_map")
+
+#computer at home
+setwd("/Users/david/Documents/GitHub/Spatial_epi")
+ohmap <- readOGR(dsn="HW 3/Map data", layer="ohio_map")
 
 #ordering of regions is not the same among the data sets - how do we align these two?
 #summary(ohmap)
@@ -211,7 +217,7 @@ moran.test(sidsres.1, col.B)
 
 <br>
 
-(b) Using Geary's test and standardized weights ("W" option), we find no evidence of cancer clustering using unadjusted residuals (p=0.208) or residuals adjusted for lat and lon (p=0.381). We see similar results (non-significance) when using non-standardized weights ("B" option).  
+(b) Using Geary's test and standardized weights ("W" option), we find no evidence of cancer clustering using unadjusted residuals (p=0.208) or residuals adjusted for latitude and longitude (p=0.381). We see similar results (non-significance) when using non-standardized weights ("B" option).  
 
 ```{r fit_geary, include=FALSE}
 
@@ -248,6 +254,7 @@ alpha.level <- 0.05
 #need to create this - slide 39?
 #geo <- latlong2grid(coordinates(ohmap))
 
+#This is a map of NC, not ohio - why is that?
 ohmap2 <- readShapeSpatial(system.file("shapes/sids.shp", 
                 package = "maptools")[1], IDvar = "FIPSNO",
                 proj4string = CRS("+proj=longlat +ellps=clrk66"))
@@ -255,23 +262,23 @@ ohmap2 <- readShapeSpatial(system.file("shapes/sids.shp",
 
 #first,  form a matrix containing the centroids
 # getLabelPoint <- function(county) {
-#   Polygon(county[c("long", "lat")])@labpt
+# Polygon(county[c("long", "lat")])@labpt
 # }
 
 
 #other way to create centroids - is this the same way and which one is necessary for this exercise
 centroids <- latlong2grid(coordinates(ohmap))
 
-#create dataframe from map data
-#oh_df <- map_data("county", "ohio")
+# #create dataframe from map data
+# oh_df <- map_data("county", "ohio")
 # oh_df <- map_data("county", "ohio")
 # centOH <- by(oh_df, oh_df$subregion, getLabelPoint)
 # centOH <- do.call("rbind.data.frame", centOH)
 # names(centOH) <- c("long", "lat")
-
+# 
 # centroids <- matrix(0, nrow=n, ncol=2)
 # for (i in 1:n) {
-#   centroids[i, ] <- c(centOH$lat[i], centOH$long[i])
+# centroids[i, ] <- c(centOH$lat[i], centOH$long[i])
 # }
 
 Kpoisson <- kulldorff(centroids, ohio_canc2$Obs, population=ohio_canc2$N,
@@ -285,17 +292,18 @@ Kcluster <- Kpoisson$most.likely.cluster$location.IDs.included
 
 ```
 
+**Figure 1: Most likely cluster of cancer in Ohio using SatScan method (p=0.044).**
 
 ```{r plot_cluster}
 
 #Why is this not working?
 plot(ohmap, axes=TRUE)
-plot(ohmap[Kcluster], add=TRUE, col="red")
+plot(ohmap[Kcluster,], add=TRUE, col="purple")
 title("Most Likely Cluster")
 
 ```
 
-
+\newpage
 
 ### Question 3
 
@@ -319,71 +327,198 @@ geozinc <- as.geodata(zmat, coords.col = c(1, 2),
 
 ```
 
+(a) 
 
-```{r cloud_variogram}
+**Figure 2: Cloud semi-variogram comparing variance of calcium content and distance between points using ca20 dataset.**
+ 
+```{r cloud_variogram, results="hide"}
 
 cloudca <- variog(ca20, option="cloud")
-plot(cloudca, ylab="Semi-variance", xlab="Distance",
+plot(cloudca, ylab="Semi-variance", xlab="Distance (m)",
      col="blue", cex=0.6)
 
 ```
 
 
 
-```{r bin_variogram}
+```{r bin_variogram, include=FALSE}
 
 #this works, but do we need to include some trend variables? I'm not sure what those are in this dataset
 binca <- variog(ca20, uvec=seq(0, 1200, 50))
-plot(binca, ylab="Semi-variance", xlab = "Distance",
+plot(binca, ylab="Semi-variance", xlab = "Distance (m)",
      cex=0.5, col="blue")
 
 ```
 
 
-(b) 
+**Figure 3: Binned semi-variogram comparing variance of soil calcium content and distance between points, adjusting for altitude and section.**
 
-```{r monte_carlo}
-
-ca.env <- variog.mc.env(ca20, obj=binca)
-plot(binca, env=ca.env, xlab="Distance", ylab="Semi-variance")
-
-```
-
-
-```{r bin_variogram2, eval=FALSE}
+```{r bin_variogram2, results="hide"}
 
 #controlling for altitude and exposure - this is probably more useful
 binca.1 <- variog(ca20, uvec=seq(0, 1200, 50),
                 trend = ~ca20$covariate$altitude + ca20$covariate$area)
-plot(binca.1, ylab="Semi-variance", xlab = "Distance",
+plot(binca.1, ylab="Semi-variance", xlab = "Distance (m)",
      cex=0.5, col="blue")
 
 ```
 
+<br>
 
-```{r monte_carlo2}
+We cannot tell much about spatial dependence by looking at the cloud variogram - there is too much noise when we examine all points together. We can infer some information by examining the binned semi-variogram (Figure 3). From this, we see some spatial dependence for points that are close together, and this spatial dependence weakens as points get further apart. We can see that some spatial dependence exists until the points are approximately 300 meters apart, at which point the curve flattens out. 
 
+(b) 
+
+**Figure 4: Monte Carlo test of no spatial correlation (99 simulations).**
+
+```{r monte_carlo}
+
+set.seed(03092020)
 ca.env <- variog.mc.env(ca20, obj=binca.1)
-plot(binca.1, env=ca.env, xlab="Distance", ylab="Semi-variance")
+plot(binca.1, env=ca.env, col="red", xlab="Distance (m)", ylab="Semi-variance", ylim =c(0, 150))
 
 ```
 
+
+<br>
+
+From the Monte Carlo simulation of no spatial correlation, we can see that there is likely some spatial correlation as the low semi-variance seen in points that are close together would be unlikely given random chance. 
+
+\newpage
 
 (c) 
 
-```{r ols_fit}
+```{r ols_fit, include=FALSE}
+
+#calculating theta using estimate of d=175
+theta <- (-300)/(log(0.05))
 
 #where do we get the numbers for the fit in this model - do they both come from the binned variogram
-olsfit <- variofit(binca, ini=c(150, 184), weights="equal")
+olsfit <- variofit(binca.1, ini=c(50, theta), weights="equal")
 olsfit
 
-wlsfit <- variofit(binca, ini=c(150, 184))
+#weighted least squares
+wlsfit <- variofit(binca.1, ini=c(50, theta))
 wlsfit
 
+#maximum likelihood
+mlfit <- likfit(ca20, ini=c(50, theta), trend= ~ca20$covariate$altitude + ca20$covariate$area)
+
+#restricted maximum likelihood
+remlfit <- likfit(ca20, ini=c(50, theta), lik.method="RML", trend= ~ca20$covariate$altitude + ca20$covariate$area)
+
+
+```
+
+<br>
+
+**Figure 5: Exponential models fit to binned variogram using least squares and maximum likelihood estimation.**
+
+```{r compare_est}
+
+plot(binca.1, max.dist = 800, xlab="Distance (m)",
+     ylab="Semi-variance", pch=19, cex=0.6, ylim=c(0, 120))
+lines(olsfit, max.dist=800, col="red")
+lines(wlsfit, max.dist=800, lty=2, col="green")
+lines(mlfit, max.dist=800, lty=3, col="blue")
+lines(remlfit, max.dist=800, lty=4, col="black")
+legend("bottomright", legend=c("OLS", "WLS", "ML", "REML"), lty=c(1,2,3,4), bty="n", col=c("red", "green", "blue", "black"), cex=0.5)
 
 ```
 
 
 
+```{r kriging_start, include=FALSE}
 
+points(ca20, pt.divide="data.proportional", cex.min=0.05,
+       cex.max=0.4, xlab="x-coordinate", ylab="y-coordinate",
+       col="green")
+
+```
+
+
+```{r fit_model, include=FALSE}
+
+lmfit <- lm(ca20$data ~ ca20$covariate$altitude + ca20$covariate$area)
+lmfit
+
+detrend <- as.geodata(cbind(ca20$coords, lmfit$residuals))
+
+```
+
+
+```{r prediction, include=FALSE}
+
+points(detrend, pt.divide="rank.prop", xlab="x-coordinate", ylab="y-coordinate", cex.min=0.1, cex.max=0.5)
+
+```
+
+
+
+```{r mle, include=FALSE}
+
+#using the same parameters from the maximum likelihood above - not sure how to get these parameters
+mlfit2 <- likfit(detrend, ini=c(50, theta))
+
+
+```
+
+
+```{r trying_smaller_area, include=FALSE}
+
+pred.grid <- expand.grid(seq(5000, 6000, l=101), seq(4800, 5800, l=101))
+
+```
+
+
+```{r krig_pred, include=FALSE}
+
+kc <- krige.conv(detrend, loc=pred.grid,
+                 krige = krige.control(obj.m=mlfit2))
+
+```
+
+<br>
+
+(d)
+
+**Figure 6: Prediction of calcium concentration using Kriging.**
+
+
+```{r krig_image}
+
+library(fields)
+image.plot(x=pred.grid[["Var1"]][1:101], y=unique(pred.grid[["Var2"]]), 
+  z=matrix(kc$predict, nrow=101, ncol=101), col=terrain.colors(100),
+  xlab= "x-coordinates", ylab="y-coordinates")
+symbols(detrend$coords[, 1], detrend$coords[, 2], circles=(detrend$data-min(detrend$data))/1, add=T, inches=0.04)
+
+
+```
+
+
+\newpage
+
+**Figure 7: Standard deviation of estimates from prediction of calcium concentration using Kriging.**
+
+```{r kriging_sd}
+
+image.plot(x=pred.grid[["Var1"]][1:101], y=unique(pred.grid[["Var2"]]),
+           z=matrix(sqrt(kc$krige.var), nrow=101, ncol=101),
+           col=cm.colors(100), xlab="x-coordinates", ylab="y-coordinates")
+points(detrend$coords[,1], detrend$coords[,2], pch=16, cex=0.5)
+
+```
+
+<br>
+
+The prediction of calcium concentration using Kriging shows several high concentration patches that coincide with areas where multiple high-concentration measurements were found. The map of standard deviation shows low SEs around the measurements and more uncertainty in between the measurements, as we would expect.
+
+\newpage
+
+###Appendix
+
+```{r appendix, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+
+```
 
