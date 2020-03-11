@@ -5,6 +5,7 @@ date: "January 27, 2020"
 output: html_document
 ---
 
+### 1. Set up
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
@@ -28,6 +29,7 @@ if (!require(anthro)) install.packages("anthro")
 if (!require(tmaptools)) install.packages("tmaptools")
 if (!require(rmapshaper)) install.packages("rmapshaper")
 if (!require(tmap)) install.packages("tmap")
+if (!require(rmapshaper)) install.packages("rmapshaper")
 
 
 ```
@@ -59,6 +61,9 @@ library(zscorer)
 library(naniar)
 
 ```
+
+
+### 2. Data cleaning
 
 Starting with Ethiopia Wave 3
 
@@ -106,6 +111,14 @@ et_w3_cover <- et_w3_cover %>%
 link_1 = "https://github.com/dmccoomes/Spatial_epi/raw/master/Final%20project/Raw%20data/ESS%20Wave%203/Ethiopia%20Wave%203%20data/ETH_2015_ESS_v02_M_STATA8/Household/sect1_hh_w3.dta"
 et_w3_hh <- read_dta(url(link_1))
 
+#get number in HH
+et_w3_hh$hh_member <- 1
+et_w3_hh_2 <- et_w3_hh %>%
+  group_by(household_id2) %>%
+    summarize(hh_members = sum(hh_member))
+
+et_w3_hh_2 <- et_w3_hh_2[c("household_id2", "hh_members")]
+
 keep_vars.hh <- c("household_id2", "rural", "pw_w3", "individual_id2", "ea_id2", "saq01", "saq02", "saq03", "saq04", "saq05", "saq06", "saq07", "hh_s1q03", "hh_s1q04a", "hh_s1q04b", "hh_s1q04h", "saq08")    
 et_w3_hh <- et_w3_hh[keep_vars.hh]
 
@@ -113,7 +126,8 @@ et_w3_hh <- et_w3_hh[keep_vars.hh]
 #Merging household cover data with health data
 #et_w3_health <- merge(et_w3_anth, et_w3_cover, no.dups=TRUE)    #I don't think we need the cover anymore
 #View(et_w3_health)
-
+ 
+et_w3_hh <- merge(et_w3_hh, et_w3_hh_2, no.dups=TRUE)
 et_w3_health <- merge(et_w3_anth, et_w3_hh, no.dups=TRUE)
 
 #merge in geovariables
@@ -168,7 +182,7 @@ et_w3_data$age_days <- et_w3_data$age_months*30
 
 et_w3_data <- et_w3_data  %>%
   select(household_id2, rural, pw_w3, individual_id2, ea_id2, region, zone, woreda, town, subcity, kebele, ea, hh, u_5, weight_kg, height_cm,
-         birth_month, birth_year, age, age_months, female, hh_s1q03, age_days, latitude, longitude)
+         birth_month, birth_year, age, age_months, female, hh_s1q03, age_days, latitude, longitude, hh_members)
 
 #summary(et_w3_data$age)
 
@@ -242,6 +256,9 @@ et_w3_data <- et_w3_data %>%
 et_w3_data$stunted <- ifelse(et_w3_data$HAZ <= -2, 1, 0)
 et_w3_data$wasted <- ifelse(et_w3_data$WHZ <= -2, 1, 0)
 
+#generating individual weights
+et_w3_data$indiv_wgt <- et_w3_data$pw_w3*et_w3_data$hh_members
+
 ```
 
 
@@ -267,15 +284,20 @@ library(rgdal)
 #pc in office
 # et_admin2_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_admin_SHP", stringsAsFactors=F)
 # et_admin1_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH-level_1_SHP", stringsAsFactors=F)
-#et_boundary_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_boundaries_SHP", stringsAsFactors=F)   #this looks like an admin 2 map
-
-#home desktop
-et_admin1_map.2 <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH-level_1_SHP", stringsAsFactors = F)
-et_admin2_map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP", stringsAsFactors = F)
+# et_boundary_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_boundaries_SHP", stringsAsFactors=F)   #this looks like an admin 2 map
 
 #new region and zone maps that match up with data
-et_admin1_map.3 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopiaregion", stringsAsFactors = F)
-et_admin2_map.2 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopia-zone", stringsAsFactors = F)
+et_admin1_map.3 <- readOGR("C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ethiopiaregion", stringsAsFactors = F)
+et_admin2_map.2 <- readOGR("C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ethiopia-zone", stringsAsFactors = F)
+
+
+#home desktop
+# et_admin1_map.2 <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH-level_1_SHP", stringsAsFactors = F)
+# et_admin2_map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP", stringsAsFactors = F)
+
+#new region and zone maps that match up with data
+# et_admin1_map.3 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopiaregion", stringsAsFactors = F)
+# et_admin2_map.2 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopia-zone", stringsAsFactors = F)
 
 #changing utm to lat and long
 #sputm <- SpatialPoints(randompoints, proj4string = CRS("+proj=utm +zone=37 +ellps=clrk80 +towgs84=-166,-15,204,0,0,0,0"))  #don't need this
@@ -331,12 +353,30 @@ et_w3_data$zone.string[et_w3_data$zone.string=="9"] <- "09"
 et_w3_data <- within(et_w3_data, zone.st <- paste(region.string, zone.string, sep=""))
 
 #only keeping those with zone codes that exist in the map
-et_w3_data <- subset(et_w3_data, zone.st != "0106" | zone.st != "0311" | zone.st != "0415" | zone.st != "0416" | zone.st != "0606" | zone.st != "0714" | zone.st != "0715" | zone.st != "0716" | zone.st != "0722" | zone.st != "1204" | zone.st != "1402" | zone.st != "1403" | zone.st != "1404" | zone.st != "1405" | zone.st != "1406" | zone.st != "1407" | zone.st != "1408" | zone.st != "1409" | zone.st != "1410")
+et_w3_data_zone <- subset(et_w3_data, zone.st != "0106" | zone.st != "0311" | zone.st != "0415" | zone.st != "0416" | zone.st != "0606" | zone.st != "0714" | zone.st != "0715" | zone.st != "0716" | zone.st != "0722" | zone.st != "1204" | zone.st != "1402" | zone.st != "1403" | zone.st != "1404" | zone.st != "1405" | zone.st != "1406" | zone.st != "1407" | zone.st != "1408" | zone.st != "1409" | zone.st != "1410")
+
+
+#developing stratas
+et_w3_data$strata[et_w3_data$rural==1] <- et_w3_data$region                    #strata is region if rural
+et_w3_data$strata[et_w3_data$rural==2 & et_w3_data$region == 1] <- 16
+et_w3_data$strata[et_w3_data$rural==2 & et_w3_data$region == 3] <- 17
+et_w3_data$strata[et_w3_data$rural==2 & et_w3_data$region == 4] <- 18
+et_w3_data$strata[et_w3_data$rural==2 & et_w3_data$region == 7] <- 19
+et_w3_data$strata[et_w3_data$rural==2 & (et_w3_data$region == 5 | et_w3_data$region == 6 | et_w3_data$region == 12 | et_w3_data$region == 13 | et_w3_data$region == 15)] <- 20
+et_w3_data$strata[et_w3_data$rural==3 & et_w3_data$region == 1] <- 21
+et_w3_data$strata[et_w3_data$rural==3 & et_w3_data$region == 3] <- 22
+et_w3_data$strata[et_w3_data$rural==3 & et_w3_data$region == 4] <- 23
+et_w3_data$strata[et_w3_data$rural==3 & et_w3_data$region == 7] <- 24
+et_w3_data$strata[et_w3_data$rural==3 & et_w3_data$region == 14] <- 25
+et_w3_data$strata[et_w3_data$rural==3 & (et_w3_data$region == 5 | et_w3_data$region == 6 | et_w3_data$region == 12 | et_w3_data$region == 13 | et_w3_data$region == 15)] <- 26
+
 
 ```
 
 
-```{r set_up_spatial_map}
+### 3. Set up spatial maps
+
+```{r set_up_spatial_map, echo=FALSE}
 
 map_desc <- as.data.frame(et_admin1_map)
 map_desc.2 <- as.data.frame(et_admin2_map)
@@ -346,7 +386,7 @@ mat <- nb2mat(nb.r, style="B", zero.policy = TRUE)
 colnames(mat) <- rownames(mat)
 mat <- as.matrix(mat[1:dim(mat)[1], 1:dim(mat)[1]])
 
-#mat
+mat
 
 nb.r.zone <- poly2nb(et_admin2_map, queen=F, row.names = et_admin2_map$ZON_P_CODE)
 mat.2 <- nb2mat(nb.r.zone, style="B", zero.policy=TRUE)
@@ -408,10 +448,14 @@ tm_shape(base_admin1) + tm_borders("black", lwd=2) + tm_polygons() +
 
 #getting regional means
 library(survey)
-design <- svydesign(ids = ~1, weights = ~pw_w3,
-                    strata = ~region, nest=TRUE, cluster= ~ea_id2, data=et_w3_data)
-direct_region <- svyby(~stunted, ~region, design, svymean)
+design <- svydesign(ids = ~1, weights = ~indiv_wgt,
+                    strata = ~strata, nest=TRUE, cluster= ~ea_id2, data=et_w3_data)
+
+direct_region <- svyby(~stunted, ~strata + region, design, svymean)
 head(direct_region)
+
+direct_zone <- svyby(~stunted, ~region + zone, design, svymean)
+head(direct_zone)
 
 
 ```
@@ -421,8 +465,15 @@ head(direct_region)
 
 svysmoothed <- fitGeneric(data=et_w3_data, geo=et_admin1_map,
                        Amat = mat, responseType="binary", responseVar="stunted",
-                       strataVar = NULL, weightVar = "pw_w3", regionVar = "region",
-                       clusterVar = "ea_id2", CI=0.95)
+                       strataVar = "strata", weightVar = "indiv_wgt", regionVar = "region",
+                       clusterVar = "~ea_id2", CI=0.95)
+
+
+# svysmoothed <- fitGeneric(data=et_w3_data, geo=et_admin1_map,
+#                        Amat = mat, responseType="binary", responseVar="stunted",
+#                        strataVar = NULL, weightVar = "indiv_wgt", regionVar = "region",
+#                        clusterVar = NULL, CI=0.95)
+
 
 ```
 
@@ -450,10 +501,6 @@ mapPlot(data=toplot_direct, geo=et_admin1_map, variables=c("HT.est.original"),
 
 
 ```{r smoothing_zones}
-
-direct_zone <- svyby(~stunted, ~region + zone, design, svymean)
-head(direct_zone)
-
 
 svysmoothed.zone <- fitGeneric(data=et_w3_data, geo=admin2_map,
                                Amat = mat.2, responseType = "binary", responseVar = "stunted",
@@ -499,4 +546,40 @@ legend('topright',
 
 
 ```
+
+
+### 4. Spatial point data
+
+Start by estimating the temperature over the country
+
+```{r krig_setup}
+
+library(doBy)
+#collapsing geovars by area
+summaryBy(h2015_tot ~ lat_dd_mod + lon_dd_mod, data=et_w3_geovars, FUN=c(mean))
+
+geo_mat <- matrix(cbind(et_w3_geovars$lat_dd_mod, et_w3_geovars$lon_dd_mod, et_w3_geovars$h2015_tot)),
+ncol=3, nrow=4954)
+
+```
+
+
+
+
+
+### 5. Regression analysis
+
+
+```{r inla}
+
+inla.region.1 <- inla(stunted ~ f(region, model="iid"),
+               family = "poisson", E = direct_region$stunted, data=direct_region,
+               control.predictor=list(compute = TRUE))
+
+
+
+```
+
+
+
 
