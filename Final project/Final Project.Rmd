@@ -24,9 +24,11 @@ if (!require(SUMMER)) install.packages("SUMMER", repos = "http://cran.us.r-proje
 if (!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
 if (!require(zscorer)) install.packages("zscorer")
 if (!require(naniar)) install.packages("naniar")
+if (!require(anthro)) install.packages("anthro")
+if (!require(tmaptools)) install.packages("tmaptools")
+if (!require(rmapshaper)) install.packages("rmapshaper")
+if (!require(tmap)) install.packages("tmap")
 
-
-#Can add more here if needed
 
 ```
 
@@ -263,10 +265,22 @@ library(rgdal)
 #et_admin2_map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP",stringsAsFactors=F) 
 
 #pc in office
-et_admin2_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_admin_SHP", stringsAsFactors=F)
-et_admin1_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH-level_1_SHP", stringsAsFactors=F)
+# et_admin2_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_admin_SHP", stringsAsFactors=F)
+# et_admin1_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH-level_1_SHP", stringsAsFactors=F)
 #et_boundary_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial modeling\\Final project\\Map data\\ETH_boundaries_SHP", stringsAsFactors=F)   #this looks like an admin 2 map
 
+#home desktop
+et_admin1_map.2 <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH-level_1_SHP", stringsAsFactors = F)
+et_admin2_map <- readOGR("/Users/david/Documents/GitHub/Spatial_epi/Final project/Map data/ETH_admin_SHP", stringsAsFactors = F)
+
+#new region and zone maps that match up with data
+et_admin1_map.3 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopiaregion", stringsAsFactors = F)
+et_admin2_map.2 <- readOGR("/Users/david/Desktop/Dave/school/Spatial Epi/Final project/map data/ethiopia-zone", stringsAsFactors = F)
+
+#changing utm to lat and long
+#sputm <- SpatialPoints(randompoints, proj4string = CRS("+proj=utm +zone=37 +ellps=clrk80 +towgs84=-166,-15,204,0,0,0,0"))  #don't need this
+et_admin1_map <- spTransform(et_admin1_map.3, CRS("+proj=longlat +datum=WGS84"))
+et_admin2_map <- spTransform(et_admin2_map.2, CRS("+proj=longlat + datum=WGS84"))
 
 ```
 
@@ -276,7 +290,7 @@ et_admin1_map <- readOGR(dsn="C:\\Users\\dcoomes\\Dropbox\\Classes\\Spatial mode
 #plot each map - boundary is the same as admin2
 plot(et_admin2_map)
 plot(et_admin1_map)
-plot(et_boundary_map)
+#plot(et_boundary_map)
 
 #if you want to layer
 plot(et_admin1_map)
@@ -289,29 +303,200 @@ plot(et_admin2_map, add=T)
 
 #starting with those that include HAZ estimates
 et_w3_data <- subset(et_w3_data, !is.na(et_w3_data$HAZ))
+#keeping only rural respondents
+et_w3_data <- subset(et_w3_data, et_w3_data$rural==1)
+
+#creating new region string variable
+et_w3_data$region.string <- as.character(et_w3_data$region)
+et_w3_data$zone.string <- as.character(et_w3_data$zone)
+
+et_w3_data$region.string[et_w3_data$region.string=="1"] <- "01"
+et_w3_data$region.string[et_w3_data$region.string=="2"] <- "02"
+et_w3_data$region.string[et_w3_data$region.string=="3"] <- "03"
+et_w3_data$region.string[et_w3_data$region.string=="4"] <- "04"
+et_w3_data$region.string[et_w3_data$region.string=="5"] <- "05"
+et_w3_data$region.string[et_w3_data$region.string=="6"] <- "06"
+et_w3_data$region.string[et_w3_data$region.string=="7"] <- "07"
+
+et_w3_data$zone.string[et_w3_data$zone.string=="1"] <- "01"
+et_w3_data$zone.string[et_w3_data$zone.string=="2"] <- "02"
+et_w3_data$zone.string[et_w3_data$zone.string=="3"] <- "03"
+et_w3_data$zone.string[et_w3_data$zone.string=="4"] <- "04"
+et_w3_data$zone.string[et_w3_data$zone.string=="5"] <- "05"
+et_w3_data$zone.string[et_w3_data$zone.string=="6"] <- "06"
+et_w3_data$zone.string[et_w3_data$zone.string=="7"] <- "07"
+et_w3_data$zone.string[et_w3_data$zone.string=="8"] <- "08"
+et_w3_data$zone.string[et_w3_data$zone.string=="9"] <- "09"
+
+et_w3_data <- within(et_w3_data, zone.st <- paste(region.string, zone.string, sep=""))
+
+#only keeping those with zone codes that exist in the map
+et_w3_data <- subset(et_w3_data, zone.st != "0106" | zone.st != "0311" | zone.st != "0415" | zone.st != "0416" | zone.st != "0606" | zone.st != "0714" | zone.st != "0715" | zone.st != "0716" | zone.st != "0722" | zone.st != "1204" | zone.st != "1402" | zone.st != "1403" | zone.st != "1404" | zone.st != "1405" | zone.st != "1406" | zone.st != "1407" | zone.st != "1408" | zone.st != "1409" | zone.st != "1410")
 
 ```
 
 
 ```{r set_up_spatial_map}
 
-nb.r <- poly2nb(et_admin1_map, queen=F)    #couldn't put rownames here - do I need those?
+map_desc <- as.data.frame(et_admin1_map)
+map_desc.2 <- as.data.frame(et_admin2_map)
+
+nb.r <- poly2nb(et_admin1_map, queen=F, row.names = et_admin1_map$REG_P_CODE)    #couldn't put rownames here - do I need those?
 mat <- nb2mat(nb.r, style="B", zero.policy = TRUE)
 colnames(mat) <- rownames(mat)
 mat <- as.matrix(mat[1:dim(mat)[1], 1:dim(mat)[1]])
 
-mat
+#mat
+
+nb.r.zone <- poly2nb(et_admin2_map, queen=F, row.names = et_admin2_map$ZON_P_CODE)
+mat.2 <- nb2mat(nb.r.zone, style="B", zero.policy=TRUE)
+colnames(mat.2) <- rownames(mat.2)
+mat.2 <- as.matrix(mat.2[1:dim(mat.2)[1], 1:dim(mat.2)[1]])
+
+mat.2
 
 ```
 
 
+```{r check_clusters}
+
+library(tmaptools)
+library(raster)
+
+mapCRS=crs(et_admin1_map) # projection of our map
+
+contriET_geo <- SpatialPointsDataFrame(et_w3_data[,c("longitude", "latitude")], # Lon/LAT
+                    et_w3_data,    #the original data frame
+                    proj4string = mapCRS)   # assign a CRS of map 
+
+get_proj4(mapCRS)
+
+library(rmapshaper)
+# This will make just a border of the state
+base_admin1 <- ms_dissolve(et_admin1_map)
+
+
+# plot(et_admin1_map,border='black',lwd=1)
+# 
+# # NEW LAYER ON TOP
+# plot(contriET_geo, 
+#      pch=20, #type of character (see link above)
+#      col = "red", 
+#      cex = .6, # shrinking
+#      add=T) # VERY important
+
+library(tmap)
+
+creditsText="EPSG: 4326\nProj=longlat\ndatum=WGS84"
+
+tm_shape(base_admin1) + tm_borders("black", lwd=2) + tm_polygons() +
+    tm_shape(et_admin1_map) + tm_borders("black", lwd=1) +
+    #ALPHA 0 is total transparency
+    tm_shape(contriET_geo) + tm_dots(size = 0.1,col = 'red',alpha=0.5) + 
+    tm_layout(main.title = "Ethiopia LSMS Cluster locations",main.title.position = 'center') +
+    tm_compass(position = c('left','TOP'),type = 'arrow') 
+    #tm_scale_bar(position=c("RIGHT", "BOTTOM"),width = 0.2) +
+    #tm_credits(creditsText, position=c("left", "bottom"))
+
+
+```
+
+
+
+
 ```{r survey_design}
 
+#getting regional means
 library(survey)
 design <- svydesign(ids = ~1, weights = ~pw_w3,
-                    strata = ~region, data=et_w3_data)
-direct <- svyby(~stunted, ~region, design, svymean)
-head(direct)
+                    strata = ~region, nest=TRUE, cluster= ~ea_id2, data=et_w3_data)
+direct_region <- svyby(~stunted, ~region, design, svymean)
+head(direct_region)
+
+
+```
+
+
+```{r fit_icar}
+
+svysmoothed <- fitGeneric(data=et_w3_data, geo=et_admin1_map,
+                       Amat = mat, responseType="binary", responseVar="stunted",
+                       strataVar = NULL, weightVar = "pw_w3", regionVar = "region",
+                       clusterVar = "ea_id2", CI=0.95)
+
+```
+
+```{r map_smoothed_est}
+
+library(mapproj)
+
+toplot <- svysmoothed$smooth
+mapPlot(data=toplot, geo=et_admin1_map, variables=c("mean.original"),
+        labels=c("Posterior Mean"), by.data="region",
+        by.geo = "REG_P_CODE")
+
+```
+
+
+
+```{r direct_est}
+
+toplot_direct <- svysmoothed$HT
+mapPlot(data=toplot_direct, geo=et_admin1_map, variables=c("HT.est.original"),
+        labels=c("Direct Estimates"), by.data="region",
+        by.geo = "REG_P_CODE")
+
+```
+
+
+```{r smoothing_zones}
+
+direct_zone <- svyby(~stunted, ~region + zone, design, svymean)
+head(direct_zone)
+
+
+svysmoothed.zone <- fitGeneric(data=et_w3_data, geo=admin2_map,
+                               Amat = mat.2, responseType = "binary", responseVar = "stunted",
+                               strataVar = NULL, weightVar = "pw_w3", regionVar = "zone.st",
+                               clusterVar = "ea_id2", CI=0.95)
+
+```
+
+
+
+
+```{r trying_a_different_way, eval=FALSE}
+
+layerContrib=merge(et_admin1_map,toplot_direct, by.x='REG_P_CODE', by.y='region',all.x=F)
+library(RColorBrewer)
+library(classInt)
+varToPLot=layerContrib$HT.est.original
+numberOfClasses = 5
+colorForScale='YlGnBu'
+colors = brewer.pal(numberOfClasses, colorForScale)
+intervals <- classIntervals(varToPLot, numberOfClasses, 
+                            style = "quantile",
+                            dataPrecision=2)
+colorPallette <- findColours(intervals, colors)
+
+legendText="intervals"
+shrinkLegend=0.4
+title="Proportion children u5 stunted in Ethiopia in 2015"
+
+# first the ORIGINAL to signal missing values:
+plot(et_admin1_map,col='red',main=title, lwd=3) 
+
+# now the info on contributions
+plot(layerContrib, lwd=3, col = colorPallette,border=NA,add=T) #add
+
+# this uses all previous information
+legend('topright', 
+       legend = names(attr(colorPallette, "table")), #values
+       fill = attr(colorPallette, "palette"), #colors
+       cex = shrinkLegend, #size 
+       bty = "n", # no box
+       title=legendText)
+
 
 ```
 
