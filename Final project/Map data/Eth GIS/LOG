@@ -1,0 +1,19 @@
+199909061532   0     0     0heinimann cw admin
+199909061537   0     0     0heinimann cw hydro
+199909061541   0     1     0heinimann copy  ETWSHED01CO hydro\ETWSHED01CO
+199909061541   0     0     0heinimann kill  ETWSHED01CO
+199909061541   0     1     0heinimann copy ETRIV01CO hydro\ETRIVer01CO
+199909061542   0     0     0heinimann kill ETRIV01CO
+199909061542   0     0     0heinimann copy ETLAKE01CO hydro\ETLAKE01CO
+199909061542   0     0     0heinimann kill ETLAKE01CO
+199909061629   0     0     0heinimann cw infra
+199909061658   0     0     0heinimann cw topol
+199909061701   0     0     0heinimann cw grids
+199909061714   0     0     0heinimann copy g:\linear\region admin/etregio01co
+199909061715   0     1     0heinimann copy g:\linear\zones admin/etzones01co
+199909061722   0     0     0heinimann cw soil
+199909061723   0     0     0heinimann cw climate
+199909061907   0     0     0heinimann RW GRIDS DTM
+199909062006   3    19     0Administrator cpw p:\ethio-gis ethio-gis
+19990907 703   2    11     0heinimann CPW F:\ETHIO-GIS ETHIO-GIS
+19990907 931   1    13     0heinimann cpw ethio-gis d:\ethio-cd\ethio-gis
