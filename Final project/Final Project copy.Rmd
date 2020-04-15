@@ -769,7 +769,6 @@ kc <- krige.conv(detrend, loc=pred.grid,
 
 ```
 
-
 ```{r}
 
 lmfit.1 <- lm(et_w3_stunt_geo$data ~ 1)
